@@ -119,7 +119,8 @@ def main():
     for var_name, seeds in all_metrics.items():
         def agg(key):
             vals = [s[key] for s in seeds if s.get(key) is not None
-                    and not (isinstance(s[key], (int,float)) and s[key] == -1)]
+                    and not (isinstance(s[key], (int,float)) and s[key] == -1)
+                    and not (isinstance(s[key], float) and np.isinf(s[key]))]
             return (float(np.mean(vals)), float(np.std(vals))) if vals else (None, None)
         aggregate[var_name] = {
             "hausdorff_mean": agg("hausdorff_final")[0],
@@ -142,16 +143,25 @@ def main():
     # Plots
     hcurves = {v: np.array(s[0].get("hausdorff_curve",[]))
                for v,s in all_metrics.items() if s and s[0].get("hausdorff_curve")}
-    if hcurves: plot_oracle_efficiency(hcurves, save=True)
+    try:
+        if hcurves: plot_oracle_efficiency(hcurves, save=True)
+    except Exception as e:
+        print(f"  ⚠ plot_oracle_efficiency skipped: {e}")
 
     fsr_c = {v: np.array(s[0].get("fsr_curve",[]))
              for v,s in all_metrics.items() if s and s[0].get("fsr_curve")}
-    if fsr_c: plot_fsr_curves(fsr_c, save=True)
+    try:
+        if fsr_c: plot_fsr_curves(fsr_c, save=True)
+    except Exception as e:
+        print(f"  ⚠ plot_fsr_curves skipped: {e}")
 
     if "A5_full_fmd" in last_models and all_histories.get("A5_full_fmd"):
-        plot_phase_diagram_2d(gt=gt,
-                              oracle_history_dict={"FMD-PINN": all_histories["A5_full_fmd"]},
-                              save=True)
+        try:
+            plot_phase_diagram_2d(gt=gt,
+                                  oracle_history_dict={"FMD-PINN": all_histories["A5_full_fmd"]},
+                                  save=True)
+        except Exception as e:
+            print(f"  ⚠ plot_phase_diagram_2d skipped: {e}")
 
     out = os.path.join(cfg.RESULTS_DIR, "ablation_summary.json")
     with open(out, "w") as f:
