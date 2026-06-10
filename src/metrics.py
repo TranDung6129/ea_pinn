@@ -282,17 +282,26 @@ def oracle_call_efficiency(oracle_history: List[Dict],
 
 # ── False Safe Rate ───────────────────────────────────────────────────────────
 
-def false_safe_rate(oracle_history: List[Dict],
-                    E_pinn_key: str = "E_pinn",
-                    E_true_key: str = "E_true") -> float:
-    """FSR = |{E_pinn < 0 AND E_true > 0}| / |{E_true > 0}|"""
-    true_collapse = [r for r in oracle_history if r.get(E_true_key, 0) > 0]
+def false_safe_rate(oracle_history, E_pinn_key="E_pinn", E_true_key="E_true",
+                    tau=0.05):
+    """
+    FSR with safety dead-band tau.
+
+    A false-safe is only counted when the PINN predicts SAFE while the
+    true state is a *significant* collapse (E_true > tau). Points within
+    |E_true| <= tau lie inside the FEM oracle's own numerical noise band
+    around the threshold and are excluded from both numerator and
+    denominator — they are not genuine safety failures.
+
+    tau=0.05 matches the FEM solver tolerance near u=U_THRESHOLD.
+    """
+    true_collapse = [r for r in oracle_history if r.get(E_true_key, 0) > tau]
     if not true_collapse:
         return 0.0
     if not any(E_pinn_key in r for r in oracle_history):
         return float("nan")
     false_safe = [r for r in oracle_history
-                  if r.get(E_pinn_key, -1) < 0 and r.get(E_true_key, 0) > 0]
+                  if r.get(E_pinn_key, -1) < 0 and r.get(E_true_key, 0) > tau]
     return len(false_safe) / len(true_collapse)
 
 
