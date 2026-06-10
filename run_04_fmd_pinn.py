@@ -34,13 +34,36 @@ ABLATION_VARIANTS = {
 def run_variant(name: str, flags: dict, seed: int, gt: dict):
     out = os.path.join(cfg.RESULTS_DIR, f"{name}_seed{seed}_metrics.json")
     if os.path.exists(out):
-        print(f"  [{name}]  seed={seed}  → already done, loading cache.")
+        print(f"  [{name}]  seed={seed}  → metrics cached, loading.")
         with open(out) as f:
             return json.load(f), None, None
+
+    # Metrics missing — but history may exist. Recompute without retraining.
+    phys = cfg.BASE_SEED + seed
+    suffix = (f"minmax{int(flags.get('use_min_max', True))}"
+              f"_ev{int(flags.get('use_event_loss', True))}"
+              f"_as{int(flags.get('use_adaptive_samp', True))}")
+    hist_file = os.path.join(cfg.RESULTS_DIR, f"fmd_pinn_seed{phys}_{suffix}.json")
+    if os.path.exists(hist_file):
+        print(f"  [{name}]  seed={seed}  → history found, recomputing metrics (no retrain).")
+        with open(hist_file) as f:
+            results = json.load(f)
+        ckpt_base = f"fmd_pinn_seed{phys}_{suffix}"
+        m = compute_all_metrics(
+            oracle_history=results["oracle_history"],
+            gt=gt, t_train_gpu_h=0.0, delta_target=0.1,
+            ckpt_name_base=ckpt_base,
+        )
+        m.update({"variant": name, "seed": seed, "dt_total_s": 0.0})
+        with open(out, "w") as f:
+            json.dump(m, f, indent=2, default=float)
+        return m, results, None
+
+    # No history either — train from scratch.
     print(f"\n  [{name}]  seed={seed}  flags={flags}")
     t0 = time.time()
 
-    trainer = FMDPINNTrainer(seed=cfg.BASE_SEED + seed, **flags)
+    trainer = FMDPINNTrainer(seed=phys, **flags)
     trainer.load_checkpoint()   # resume from checkpoint if available
     results = trainer.run()
 
