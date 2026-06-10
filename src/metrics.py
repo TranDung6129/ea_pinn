@@ -362,6 +362,13 @@ def coverage_ratio(oracle_history: List[Dict],
             return 0.0
         X = np.array([[r["alpha"], r["beta"], r["D"]] for r in oracle_history])
         y = np.array([r.get("E_pinn", r.get("E_true", 0)) for r in oracle_history])
+
+        # Drop NaN/inf rows — a corrupted history entry shouldn't crash CR
+        finite = np.isfinite(y) & np.isfinite(X).all(axis=1)
+        X, y = X[finite], y[finite]
+        if len(y) < 5:
+            return 0.0
+
         gp = GaussianProcessRegressor(kernel=Matern(nu=2.5), normalize_y=True)
         gp.fit(X, y)
         E_pred = gp.predict(params)
