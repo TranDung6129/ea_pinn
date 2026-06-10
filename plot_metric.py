@@ -46,6 +46,9 @@ STYLE = {
 PINN_CURVE_KEYS = ["hausdorff_curve_pinn", "bpe_curve",
                    "pinn_hausdorff_curve", "hausdorff_pinn"]
 LEGACY_CURVE_KEY = "hausdorff_curve"
+# A5 metrics: ckpt_name_base was passed → hausdorff_curve IS PINN-based
+# List variants that use PINN-based curve stored under the legacy key
+PINN_VARIANTS = {"A5_full_fmd"}
 DELTA_TARGET = 0.1
 DPI = 300
 
@@ -62,13 +65,14 @@ def load_seed_metrics(variant: str) -> list:
     return out
 
 
-def pick_hausdorff_curve(m: dict) -> tuple:
+def pick_hausdorff_curve(m: dict, variant: str = "") -> tuple:
     """Return (curve, is_pinn_based). Prefers PINN-based key."""
     for k in PINN_CURVE_KEYS:
         if m.get(k):
             return np.asarray(m[k], dtype=float), True
     if m.get(LEGACY_CURVE_KEY):
-        return np.asarray(m[LEGACY_CURVE_KEY], dtype=float), False
+        is_pinn = variant in PINN_VARIANTS
+        return np.asarray(m[LEGACY_CURVE_KEY], dtype=float), is_pinn
     return None, False
 
 
@@ -107,7 +111,7 @@ def plot_oracle_efficiency_v2(budget: int):
             continue
         curves, pinn_flags = [], []
         for m in seeds:
-            c, is_pinn = pick_hausdorff_curve(m)
+            c, is_pinn = pick_hausdorff_curve(m, variant)
             if c is not None:
                 curves.append(c)
                 pinn_flags.append(is_pinn)
