@@ -208,52 +208,54 @@ def main():
 
     # ── Oracle efficiency plot ────────────────────────────────────────────────
     print("\nGenerating oracle efficiency curves …")
+    # Load per-call Hausdorff curves from individual result files
+    hausdorff_curves = {}
+    fsr_curves_dict  = {}
+
+    for var_file in glob.glob(os.path.join(cfg.RESULTS_DIR, "*_seed0_metrics.json")):
+        m = load_json(var_file)
+        var_name = m.get("variant", os.path.basename(var_file))
+        display  = {
+            "A2_event_only":    "FMD (event only)",
+            "A3_adaptive_only": "FMD (adaptive only)",
+            "A4_no_minmax":     "FMD (no min-max)",
+            "A5_full_fmd":      "FMD-PINN (full)",
+        }.get(var_name, var_name)
+        if m.get("hausdorff_curve"):
+            hausdorff_curves[display] = np.array(m["hausdorff_curve"])
+        if m.get("fsr_curve"):
+            fsr_curves_dict[display] = np.array(m["fsr_curve"])
+
+    # Add BO Hausdorff curve if available
+    bo_per_seed = os.path.join(cfg.RESULTS_DIR, "bo_fem_seed42.json")
+    if os.path.exists(bo_per_seed):
+        bo_s = load_json(bo_per_seed)
+        if bo_s.get("oracle_history"):
+            from src.metrics import (compute_all_metrics, normalise_for_hausdorff,
+                                      extract_boundary_from_results, oracle_call_efficiency)
+            from src.ground_truth import get_gt_boundary_points
+            true_bp = get_gt_boundary_points(gt)
+            true_bp_n = normalise_for_hausdorff(true_bp[:,0], true_bp[:,1], true_bp[:,2])
+            _, bo_hcurve = oracle_call_efficiency(bo_s["oracle_history"],
+                                                   true_bp_n, delta_target=0.1)
+            hausdorff_curves["BO+FEM"] = bo_hcurve
+
+    print(f"  hausdorff_curves keys: {list(hausdorff_curves.keys())}")
+    print(f"  fsr_curves keys: {list(fsr_curves_dict.keys())}")
+    
     try:
-        # Load per-call Hausdorff curves from individual result files
-        hausdorff_curves = {}
-        fsr_curves_dict  = {}
-
-        for var_file in glob.glob(os.path.join(cfg.RESULTS_DIR, "*_seed0_metrics.json")):
-            m = load_json(var_file)
-            var_name = m.get("variant", os.path.basename(var_file))
-            display  = {
-                "A2_event_only":    "FMD (event only)",
-                "A3_adaptive_only": "FMD (adaptive only)",
-                "A4_no_minmax":     "FMD (no min-max)",
-                "A5_full_fmd":      "FMD-PINN (full)",
-            }.get(var_name, var_name)
-            if m.get("hausdorff_curve"):
-                hausdorff_curves[display] = np.array(m["hausdorff_curve"])
-            if m.get("fsr_curve"):
-                fsr_curves_dict[display] = np.array(m["fsr_curve"])
-
-        # Add BO Hausdorff curve if available
-        bo_per_seed = os.path.join(cfg.RESULTS_DIR, "bo_fem_seed42.json")
-        if os.path.exists(bo_per_seed):
-            bo_s = load_json(bo_per_seed)
-            if bo_s.get("oracle_history"):
-                from src.metrics import (compute_all_metrics, normalise_for_hausdorff,
-                                          extract_boundary_from_results, oracle_call_efficiency)
-                from src.ground_truth import get_gt_boundary_points
-                true_bp = get_gt_boundary_points(gt)
-                true_bp_n = normalise_for_hausdorff(true_bp[:,0], true_bp[:,1], true_bp[:,2])
-                _, bo_hcurve = oracle_call_efficiency(bo_s["oracle_history"],
-                                                       true_bp_n, delta_target=0.1)
-                hausdorff_curves["BO+FEM"] = bo_hcurve
-
-        print(f"  hausdorff_curves keys: {list(hausdorff_curves.keys())}")
-        print(f"  fsr_curves keys: {list(fsr_curves_dict.keys())}")
         if hausdorff_curves:
             plot_oracle_efficiency(hausdorff_curves, save=True)
             print(f"  ✓ Oracle efficiency plot saved")
+    except Exception as e:
+        print(f"  ⚠ oracle_efficiency plot skipped: {e}")
 
+    try:
         if fsr_curves_dict:
             plot_fsr_curves(fsr_curves_dict, save=True)
             print(f"  ✓ FSR curves saved")
     except Exception as e:
-        import traceback
-        print(f"ERROR: {e}")
-        traceback.print_exc()
+        print(f"  ⚠ fsr_curves plot skipped: {e}")
 
     # ── Solution field comparisons ────────────────────────────────────────────
     print("\nGenerating solution field comparisons …")
@@ -281,15 +283,18 @@ def main():
     if fmd_hist_file:
         hist = load_json(fmd_hist_file[0])
         if hist.get("oracle_history"):
-            plot_phase_diagram_2d(
-                gt=gt,
-                oracle_history_dict={"FMD-PINN": hist["oracle_history"]},
-                bo_history=bo_hist,
-                model=fmd_model,
-                D_fixed=0.0067,
-                save=True,
-            )
-            print(f"  ✓ Phase diagram saved")
+            try:
+                plot_phase_diagram_2d(
+                    gt=gt,
+                    oracle_history_dict={"FMD-PINN": hist["oracle_history"]},
+                    bo_history=bo_hist,
+                    model=fmd_model,
+                    D_fixed=0.0067,
+                    save=True,
+                )
+                print(f"  ✓ Phase diagram saved")
+            except Exception as e:
+                print(f"  ⚠ Phase diagram plot skipped: {e}")
 
     # ── Final report ──────────────────────────────────────────────────────────
     report = {
