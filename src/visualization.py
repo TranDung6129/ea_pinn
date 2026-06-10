@@ -212,11 +212,7 @@ def plot_phase_diagram_2d(gt: dict,
     ax.set_xlabel("α (reaction rate)")
     ax.set_ylabel("β (nonlinear damping)")
     ax.set_title("(D) Boundary Accuracy Comparison", fontweight="bold")
-    ax.text(0.03, 0.08,
-            "FMD-PINN δ_H = 0.416\nBO+FEM δ_H = 1.264",
-            transform=ax.transAxes, fontsize=9,
-            bbox=dict(boxstyle="round,pad=0.4", facecolor="white",
-                      edgecolor="gray", alpha=0.9))
+
 
     if save:
         _save(fig, "phase_diagram_main")

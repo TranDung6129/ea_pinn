@@ -383,9 +383,17 @@ class FMDPINNTrainer:
         from src.pinn_model import normalise_params
         from src.fem_oracle import solve_reaction_diffusion
         anchor_params = [
-            (2.0,  4.0,  0.1,   "stable"),
-            (10.0, 1.0,  0.01,  "collapse"),
-            (14.0, 0.5,  0.005, "extreme collapse"),
+            (2.0,  4.0, 0.1,   "stable"),
+            (10.0, 1.0, 0.01,  "collapse"),
+            (14.0, 0.5, 0.005, "extreme collapse"),
+            (1.5,  4.0, 0.2,   "stable2"),
+            # Near-boundary cases covering full β range
+            (4.0,  4.0, 0.007, "near_boundary_high_beta"),
+            (5.0,  2.5, 0.01,  "near_boundary_mid_beta"),
+            (6.0,  1.5, 0.01,  "near_boundary_low_beta"),
+            # High D cases to prevent D-bias
+            (8.0,  2.0, 0.1,   "collapse_high_D"),
+            (3.0,  3.0, 0.15,  "near_boundary_high_D"),
         ]
         replay = []
         for a, b, D, label in anchor_params:
@@ -398,13 +406,17 @@ class FMDPINNTrainer:
             print(f"  [Anchor] {label}: E_true={r['E']:+.3f}")
         return replay
 
-    def _warmup_training(self, n_steps: int = 3000):
-        """Supervised pretraining on FEM data before oracle loop.
-        Auto-restarts if initialization is bad (mean E error > threshold).
+    def _warmup_training(self, n_steps: int = 12000, max_attempts: int = 3):
+        """Supervised pretraining: field MSE + peak alignment + E supervision.
+
+        Restart strategy: re-initialise weights with a new seed (same lr).
+        Acceptance: mean E error < threshold AND correct sign on every
+        case with |E_true| > 0.1.
         """
         from src.fem_oracle import solve_reaction_diffusion
-        from src.pinn_model import normalise_params
+        from src.pinn_model import normalise_params, build_model
         import numpy as np
+        import torch.optim as optim
 
         print("  [Warmup] Collecting FEM data for pretraining...")
         pretrain_cases = [
@@ -430,105 +442,96 @@ class FMDPINNTrainer:
             fem_data.append((p, r, label))
             print(f"    {label}: E={r['E']:+.3f}")
 
+        # Sampling weights: boundary/collapse cases drawn more often
+        w = np.array([1.0 / (abs(fr["E"]) + 0.3) for _, fr, _ in fem_data])
+        w = w / w.sum()
+
         nx = cfg.FEM_NX
         x  = np.linspace(0, 1, nx)
         X, Y = np.meshgrid(x, x)
 
-        def _run_warmup_once(lr: float, attempt: int) -> float:
-            """Run one warmup attempt, return mean E error."""
-            # Use a different random seed for each attempt.
-            torch.manual_seed(self.seed * 100 + attempt)
+        LAMBDA_PEAK = 2.0     # peak-alignment weight
+        LAMBDA_E    = 1.0     # direct E supervision weight
+        THRESH_MEAN = 0.35
+        SIGN_BAND   = 0.1     # cases with |E_true| > this must be sign-correct
 
-            # Reset model weights
-            for layer in self.model.modules():
-                if hasattr(layer, 'reset_parameters'):
-                    layer.reset_parameters()
+        best_err, best_state = np.inf, None
 
-            warmup_adam = torch.optim.Adam(self.model.parameters(), lr=lr)
+        for attempt in range(1, max_attempts + 1):
+            if attempt > 1:
+                # Re-init weights with a different seed — do NOT lower lr
+                torch.manual_seed(self.seed * 1000 + attempt)
+                self.model = build_model(self.device)
+                self.adam  = optim.Adam(self.model.parameters(), lr=cfg.LR_ADAM)
+            print(f"  [Warmup] Attempt {attempt}/{max_attempts}  lr={cfg.LR_ADAM:.0e}")
 
+            warm_opt = optim.Adam(self.model.parameters(), lr=1e-4)
             self.model.train()
+
             for step in range(n_steps):
-                idx = step % len(fem_data)
+                idx = np.random.choice(len(fem_data), p=w)
                 p_hat, fem_r, label = fem_data[idx]
                 t_idx = np.random.randint(0, len(fem_r["traj"]))
                 t_val = float(fem_r["t_eval"][t_idx])
-                u_fem = torch.tensor(
-                    fem_r["traj"][t_idx].ravel(),
-                    dtype=torch.float32, device=self.device)
+                u_fem = torch.tensor(fem_r["traj"][t_idx].ravel(),
+                                     dtype=torch.float32, device=self.device)
                 xyt = torch.tensor(
                     np.column_stack([X.ravel(), Y.ravel(),
                                      np.full(nx*nx, t_val)]),
                     dtype=torch.float32, device=self.device)
+
                 u_pred = self.model(xyt, p_hat)
-                loss   = ((u_pred - u_fem)**2).mean()
-                warmup_adam.zero_grad()
+
+                loss_field = ((u_pred - u_fem)**2).mean()
+                loss_peak  = (u_pred.max() - u_fem.max())**2
+                # Direct E supervision: global max over trajectory
+                e_true = float(fem_r["E"])
+                e_pred = u_pred.max() - cfg.U_THRESHOLD
+                loss_E  = (e_pred - e_true)**2 if t_idx == len(fem_r["traj"]) - 1 \
+                          else torch.tensor(0.0, device=self.device)
+
+                loss = loss_field + LAMBDA_PEAK * loss_peak + LAMBDA_E * loss_E
+                warm_opt.zero_grad()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(), 0.5)
-                warmup_adam.step()
-                if step % 500 == 0:
-                    print(f"  [Warmup] step={step:4d}/{n_steps}"
-                          f"  loss={loss.item():.4e}")
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                warm_opt.step()
+                if step % 2000 == 0:
+                    print(f"  [Warmup] step={step:5d}/{n_steps}  loss={loss.item():.4e}")
 
-            # Check quality
+            # ── Acceptance check ────────────────────────────────────────
             self.model.eval()
-            xyt_test = torch.rand(256, 3, device=self.device)
-            xyt_test[:, 2] *= cfg.T_END
-            e_pinns = []
+            errs, sign_ok = [], True
             print("  [Warmup] Post-pretrain E_pinn check:")
-            with torch.no_grad():
-                for p_hat, fem_r, label in fem_data:
-                    N = xyt_test.shape[0]
-                    p_exp = p_hat.unsqueeze(0).expand(N, -1)
-                    E = self.model(xyt_test, p_exp).max().item() \
-                        - cfg.U_THRESHOLD
-                    e_pinns.append(E)
-                    print(f"    {label}: E_pinn={E:+.3f}"
-                          f"  E_true={fem_r['E']:+.3f}")
+            for p_hat, fem_r, label in fem_data:
+                xyt_test = torch.rand(512, 3, device=self.device)
+                xyt_test[:, 2] *= cfg.T_END
+                with torch.no_grad():
+                    p_exp = p_hat.unsqueeze(0).expand(xyt_test.shape[0], -1)
+                    E = self.model(xyt_test, p_exp).max().item() - cfg.U_THRESHOLD
+                e_true = float(fem_r["E"])
+                errs.append(abs(E - e_true))
+                if abs(e_true) > SIGN_BAND and np.sign(E) != np.sign(e_true):
+                    sign_ok = False
+                print(f"    {label}: E_pinn={E:+.3f}  E_true={e_true:+.3f}"
+                      f"{'' if abs(e_true) <= SIGN_BAND or np.sign(E)==np.sign(e_true) else '  ✗SIGN'}")
             self.model.train()
-            
-            # Điều kiện 1: mean error tổng thể
-            mean_err = float(np.mean([abs(e_pinn - fem_r['E']) 
-                                      for (_, fem_r, _), e_pinn in zip(fem_data, e_pinns)]))
-            # Điều kiện 2: collapse cases phải predict đúng dấu
-            collapse_sign_ok = all(
-                e_pinn > -0.3
-                for (_, fem_r, _), e_pinn in zip(fem_data, e_pinns)
-                if fem_r['E'] > 0
-            )
-            return mean_err, collapse_sign_ok
 
-        # ── Auto-restart loop ────────────────────────────────────────────
-        best_error = float('inf')
-        best_state = None
-        lrs = [1e-4, 5e-5, 2e-5]  # reduce LR each restart
+            mean_err = float(np.mean(errs))
+            print(f"  [Warmup] Mean E error = {mean_err:.4f}  "
+                  f"sign_ok={sign_ok}  (thresh={THRESH_MEAN})")
 
-        for attempt in range(cfg.WARMUP_MAX_RESTARTS):
-            lr = lrs[min(attempt, len(lrs) - 1)]
-            print(f"  [Warmup] Attempt {attempt+1}/{cfg.WARMUP_MAX_RESTARTS}"
-                  f"  lr={lr:.0e}")
-            mean_err, collapse_sign_ok = _run_warmup_once(lr, attempt)
-            print(f"  [Warmup] Mean E error = {mean_err:.4f}"
-                  f"  (threshold={cfg.WARMUP_BAD_THRESHOLD})")
+            if mean_err < best_err:
+                best_err = mean_err
+                best_state = {k: v.clone() for k, v in self.model.state_dict().items()}
 
-            if mean_err < best_error:
-                best_error = mean_err
-                best_state = {k: v.clone()
-                              for k, v in self.model.state_dict().items()}
+            if mean_err < THRESH_MEAN and sign_ok:
+                print("  [Warmup] ✓ Accepted.")
+                return
 
-            if mean_err <= cfg.WARMUP_BAD_THRESHOLD and collapse_sign_ok:
-                print(f"  [Warmup] ✓ Good initialization"
-                      f"  (error={mean_err:.4f})")
-                break
-            else:
-                print(f"  [Warmup] ✗ Bad initialization, restarting...")
+            print("  [Warmup] ✗ Rejected, re-initialising...")
 
-        # Load best state found across all attempts
-        if best_state is not None:
-            self.model.load_state_dict(best_state)
-            print(f"  [Warmup] Loaded best state"
-                  f"  (error={best_error:.4f})")
-
+        print(f"  [Warmup] Loaded best state  (error={best_err:.4f})")
+        self.model.load_state_dict(best_state)
         self.model.train()
 
     def _inner_train(self, p_hat: torch.Tensor, n_steps: int = 500):
