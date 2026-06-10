@@ -286,6 +286,7 @@ def main():
                 oracle_history_dict={"FMD-PINN": hist["oracle_history"]},
                 bo_history=bo_hist,
                 model=fmd_model,
+                D_fixed=0.0067,
                 save=True,
             )
             print(f"  ✓ Phase diagram saved")

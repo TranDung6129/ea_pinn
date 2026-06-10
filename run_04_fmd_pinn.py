@@ -32,6 +32,11 @@ ABLATION_VARIANTS = {
 
 
 def run_variant(name: str, flags: dict, seed: int, gt: dict):
+    out = os.path.join(cfg.RESULTS_DIR, f"{name}_seed{seed}_metrics.json")
+    if os.path.exists(out):
+        print(f"  [{name}]  seed={seed}  → already done, loading cache.")
+        with open(out) as f:
+            return json.load(f), None, None
     print(f"\n  [{name}]  seed={seed}  flags={flags}")
     t0 = time.time()
 
@@ -103,9 +108,11 @@ def main():
             print(f"  seed={seed}  δ_H={m['hausdorff_final']:.4f}  "
                   f"N_δ={m['n_delta']}  FSR={m['fsr']*100:.1f}%  "
                   f"CR={m['coverage_ratio']*100:.1f}%")
-        all_metrics[var_name]   = seed_metrics
-        all_histories[var_name] = results["oracle_history"]
-        last_models[var_name]   = model
+        all_metrics[var_name] = seed_metrics
+        if results is not None:
+            all_histories[var_name] = results["oracle_history"]
+        if model is not None:
+            last_models[var_name] = model
 
     # Aggregate
     aggregate = {}

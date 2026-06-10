@@ -79,6 +79,9 @@ class FMDPINNTrainer:
         # Initialise p in normalised space (start near centre)
         self.p_hat = torch.full((3,), 0.5, device=self.device, requires_grad=False)
 
+        # Pre-compute anchor E_true from FEM once — never hardcode
+        self._anchor_replay = self._build_anchor_replay()
+
     # ── Main entry point ──────────────────────────────────────────────────────
 
     def run(self) -> dict:
@@ -375,6 +378,26 @@ class FMDPINNTrainer:
 
     # ── Inner training ────────────────────────────────────────────────────────
 
+    def _build_anchor_replay(self) -> list:
+        """Compute anchor (p_hat, E_true) from FEM once at init. No hardcoding."""
+        from src.pinn_model import normalise_params
+        from src.fem_oracle import solve_reaction_diffusion
+        anchor_params = [
+            (2.0,  4.0,  0.1,   "stable"),
+            (10.0, 1.0,  0.01,  "collapse"),
+            (14.0, 0.5,  0.005, "extreme collapse"),
+        ]
+        replay = []
+        for a, b, D, label in anchor_params:
+            r = solve_reaction_diffusion(a, b, D)
+            rp = normalise_params(
+                torch.tensor([a], device=self.device),
+                torch.tensor([b], device=self.device),
+                torch.tensor([D], device=self.device)).squeeze(0)
+            replay.append((rp, float(r["E"])))
+            print(f"  [Anchor] {label}: E_true={r['E']:+.3f}")
+        return replay
+
     def _warmup_training(self, n_steps: int = 3000):
         """Supervised pretraining on FEM data before oracle loop.
         Auto-restarts if initialization is bad (mean E error > threshold).
@@ -451,7 +474,7 @@ class FMDPINNTrainer:
             self.model.eval()
             xyt_test = torch.rand(256, 3, device=self.device)
             xyt_test[:, 2] *= cfg.T_END
-            errors = []
+            e_pinns = []
             print("  [Warmup] Post-pretrain E_pinn check:")
             with torch.no_grad():
                 for p_hat, fem_r, label in fem_data:
@@ -459,12 +482,21 @@ class FMDPINNTrainer:
                     p_exp = p_hat.unsqueeze(0).expand(N, -1)
                     E = self.model(xyt_test, p_exp).max().item() \
                         - cfg.U_THRESHOLD
-                    err = abs(E - fem_r['E'])
-                    errors.append(err)
+                    e_pinns.append(E)
                     print(f"    {label}: E_pinn={E:+.3f}"
                           f"  E_true={fem_r['E']:+.3f}")
             self.model.train()
-            return float(np.mean(errors))
+            
+            # Điều kiện 1: mean error tổng thể
+            mean_err = float(np.mean([abs(e_pinn - fem_r['E']) 
+                                      for (_, fem_r, _), e_pinn in zip(fem_data, e_pinns)]))
+            # Điều kiện 2: collapse cases phải predict đúng dấu
+            collapse_sign_ok = all(
+                e_pinn > -0.3
+                for (_, fem_r, _), e_pinn in zip(fem_data, e_pinns)
+                if fem_r['E'] > 0
+            )
+            return mean_err, collapse_sign_ok
 
         # ── Auto-restart loop ────────────────────────────────────────────
         best_error = float('inf')
@@ -475,7 +507,7 @@ class FMDPINNTrainer:
             lr = lrs[min(attempt, len(lrs) - 1)]
             print(f"  [Warmup] Attempt {attempt+1}/{cfg.WARMUP_MAX_RESTARTS}"
                   f"  lr={lr:.0e}")
-            mean_err = _run_warmup_once(lr, attempt)
+            mean_err, collapse_sign_ok = _run_warmup_once(lr, attempt)
             print(f"  [Warmup] Mean E error = {mean_err:.4f}"
                   f"  (threshold={cfg.WARMUP_BAD_THRESHOLD})")
 
@@ -484,7 +516,7 @@ class FMDPINNTrainer:
                 best_state = {k: v.clone()
                               for k, v in self.model.state_dict().items()}
 
-            if mean_err <= cfg.WARMUP_BAD_THRESHOLD:
+            if mean_err <= cfg.WARMUP_BAD_THRESHOLD and collapse_sign_ok:
                 print(f"  [Warmup] ✓ Good initialization"
                       f"  (error={mean_err:.4f})")
                 break
@@ -509,21 +541,7 @@ class FMDPINNTrainer:
         from src.loss_functions import failure_functional
         import numpy as np
         
-        anchor_cases = [
-            (2.0,  4.0, 0.1,   -1.219),
-            (10.0, 1.0, 0.01,   1.662),
-            (14.0, 0.5, 0.005,  2.167),
-            (4.0,  4.0, 0.007, -0.522),   # near boundary high beta
-            (8.0,  2.0, 0.1,    0.500),   # collapse high D
-            (3.0,  3.0, 0.15,  -0.300),   # near boundary high D
-        ]
-        replay = []
-        for a, b, D, e_true in anchor_cases:
-            rp = normalise_params(
-                torch.tensor([a], device=self.device),
-                torch.tensor([b], device=self.device),
-                torch.tensor([D], device=self.device)).squeeze(0)
-            replay.append((rp, e_true))
+        replay = list(self._anchor_replay)  # từ FEM, tính lúc init
             
         for rec in self.oracle_history[-10:]:
             rec_p = normalise_params(
