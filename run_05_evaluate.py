@@ -21,6 +21,15 @@ Checkpoint CP6:
 import sys, os, json, glob
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import faulthandler
+faulthandler.enable(all_threads=True)
+
+from multiprocessing import freeze_support
+freeze_support()
+
+import matplotlib
+matplotlib.use('Agg')  # non-interactive backend, no display needed
+
 import numpy as np
 import config as cfg
 from src.ground_truth import generate_ground_truth
@@ -180,69 +189,91 @@ def main():
         fsr_ok = "✓ OK" if fmd_fsr < 0.05 else "✗ ABOVE THRESHOLD"
         print(f"  FMD-PINN FSR = {fmd_fsr*100:.1f}%  [target < 5%]  [{fsr_ok}]")
 
-    # ── Oracle efficiency plot ────────────────────────────────────────────────
-    print("\nGenerating oracle efficiency curves …")
-    # Load per-call Hausdorff curves from individual result files
-    hausdorff_curves = {}
-    fsr_curves_dict  = {}
-
-    for var_file in glob.glob(os.path.join(cfg.RESULTS_DIR, "*_seed0_metrics.json")):
-        m = load_json(var_file)
-        var_name = m.get("variant", os.path.basename(var_file))
-        display  = {
-            "A2_event_only":    "FMD (event only)",
-            "A3_adaptive_only": "FMD (adaptive only)",
-            "A4_no_minmax":     "FMD (no min-max)",
-            "A5_full_fmd":      "FMD-PINN (full)",
-        }.get(var_name, var_name)
-        if m.get("hausdorff_curve"):
-            hausdorff_curves[display] = np.array(m["hausdorff_curve"])
-        if m.get("fsr_curve"):
-            fsr_curves_dict[display] = np.array(m["fsr_curve"])
-
-    # Add BO Hausdorff curve if available
-    bo_per_seed = os.path.join(cfg.RESULTS_DIR, "bo_fem_seed0.json")
+    # Load BO history for the phase-diagram comparison panel
+    bo_hist = None
+    bo_per_seed = os.path.join(cfg.RESULTS_DIR, "bo_fem_seed42.json")
     if os.path.exists(bo_per_seed):
-        bo_s = load_json(bo_per_seed)
-        if bo_s.get("oracle_history"):
-            from src.metrics import (compute_all_metrics, normalise_for_hausdorff,
-                                      extract_boundary_from_results, oracle_call_efficiency)
-            from src.ground_truth import get_gt_boundary_points
-            true_bp = get_gt_boundary_points(gt)
-            true_bp_n = normalise_for_hausdorff(true_bp[:,0], true_bp[:,1], true_bp[:,2])
-            _, bo_hcurve = oracle_call_efficiency(bo_s["oracle_history"],
-                                                   true_bp_n, delta_target=0.1)
-            hausdorff_curves["BO+FEM"] = bo_hcurve
+        bo_data = load_json(bo_per_seed)
+        bo_hist = bo_data.get("oracle_history")
 
-    if hausdorff_curves:
-        plot_oracle_efficiency(hausdorff_curves, save=True)
-        print(f"  ✓ Oracle efficiency plot saved")
-
-    if fsr_curves_dict:
-        plot_fsr_curves(fsr_curves_dict, save=True)
-        print(f"  ✓ FSR curves saved")
-
-    # ── Solution field comparisons ────────────────────────────────────────────
-    print("\nGenerating solution field comparisons …")
-    # Load best FMD-PINN model (A5, seed 0)
-    ckpt = os.path.join(cfg.CKPT_DIR,
-                         f"fmd_pinn_seed{cfg.BASE_SEED}_minmax1_ev1_as1.pt")
+    # Load FMD-PINN model for the phase-diagram comparison panel
+    fmd_model = None
+    ckpt = os.path.join(cfg.CKPT_DIR, "fmd_pinn_seed42_minmax1_ev1_as1.pt")
     if os.path.exists(ckpt):
         import torch
         from src.pinn_model import build_model
-        model = build_model(cfg.DEVICE)
-        model.load_state_dict(torch.load(ckpt, map_location=cfg.DEVICE))
+        fmd_model = build_model(cfg.DEVICE)
+        fmd_model.load_state_dict(torch.load(ckpt, map_location=cfg.DEVICE))
+        fmd_model.eval()
 
-        test_cases = [
-            (2.0,  4.0, 0.1,  "stable"),
-            (3.5,  1.5, 0.05, "near_boundary"),
-            (10.0, 1.0, 0.01, "collapse"),
-        ]
-        for alpha, beta, D, label in test_cases:
-            plot_solution_field(model, alpha, beta, D, save=True, device=cfg.DEVICE)
-        print(f"  ✓ Solution field plots saved (3 cases)")
-    else:
-        print(f"  ⚠ Model checkpoint not found: {ckpt}")
+    # ── Oracle efficiency plot ────────────────────────────────────────────────
+    print("\nGenerating oracle efficiency curves …")
+    try:
+        # Load per-call Hausdorff curves from individual result files
+        hausdorff_curves = {}
+        fsr_curves_dict  = {}
+
+        for var_file in glob.glob(os.path.join(cfg.RESULTS_DIR, "*_seed0_metrics.json")):
+            m = load_json(var_file)
+            var_name = m.get("variant", os.path.basename(var_file))
+            display  = {
+                "A2_event_only":    "FMD (event only)",
+                "A3_adaptive_only": "FMD (adaptive only)",
+                "A4_no_minmax":     "FMD (no min-max)",
+                "A5_full_fmd":      "FMD-PINN (full)",
+            }.get(var_name, var_name)
+            if m.get("hausdorff_curve"):
+                hausdorff_curves[display] = np.array(m["hausdorff_curve"])
+            if m.get("fsr_curve"):
+                fsr_curves_dict[display] = np.array(m["fsr_curve"])
+
+        # Add BO Hausdorff curve if available
+        bo_per_seed = os.path.join(cfg.RESULTS_DIR, "bo_fem_seed42.json")
+        if os.path.exists(bo_per_seed):
+            bo_s = load_json(bo_per_seed)
+            if bo_s.get("oracle_history"):
+                from src.metrics import (compute_all_metrics, normalise_for_hausdorff,
+                                          extract_boundary_from_results, oracle_call_efficiency)
+                from src.ground_truth import get_gt_boundary_points
+                true_bp = get_gt_boundary_points(gt)
+                true_bp_n = normalise_for_hausdorff(true_bp[:,0], true_bp[:,1], true_bp[:,2])
+                _, bo_hcurve = oracle_call_efficiency(bo_s["oracle_history"],
+                                                       true_bp_n, delta_target=0.1)
+                hausdorff_curves["BO+FEM"] = bo_hcurve
+
+        print(f"  hausdorff_curves keys: {list(hausdorff_curves.keys())}")
+        print(f"  fsr_curves keys: {list(fsr_curves_dict.keys())}")
+        if hausdorff_curves:
+            plot_oracle_efficiency(hausdorff_curves, save=True)
+            print(f"  ✓ Oracle efficiency plot saved")
+
+        if fsr_curves_dict:
+            plot_fsr_curves(fsr_curves_dict, save=True)
+            print(f"  ✓ FSR curves saved")
+    except Exception as e:
+        import traceback
+        print(f"ERROR: {e}")
+        traceback.print_exc()
+
+    # ── Solution field comparisons ────────────────────────────────────────────
+    print("\nGenerating solution field comparisons …")
+    try:
+        ckpt = os.path.join(cfg.CKPT_DIR, "fmd_pinn_seed42_minmax1_ev1_as1.pt")
+        if os.path.exists(ckpt):
+            import torch
+            from src.pinn_model import build_model
+            model = build_model(cfg.DEVICE)
+            model.load_state_dict(torch.load(ckpt, map_location=cfg.DEVICE))
+            test_cases = [
+                (2.0,  4.0, 0.1,  "stable"),
+                (3.5,  1.5, 0.05, "near_boundary"),
+                (10.0, 1.0, 0.01, "collapse"),
+            ]
+            for alpha, beta, D, label in test_cases:
+                plot_solution_field(model, alpha, beta, D, save=True, device=cfg.DEVICE)
+            print(f"  ✓ Solution field plots saved (3 cases)")
+    except Exception as e:
+        print(f"  ⚠ Solution field skipped: {e}")
 
     # ── Phase diagram ─────────────────────────────────────────────────────────
     fmd_hist_file = glob.glob(os.path.join(cfg.RESULTS_DIR,
@@ -253,6 +284,8 @@ def main():
             plot_phase_diagram_2d(
                 gt=gt,
                 oracle_history_dict={"FMD-PINN": hist["oracle_history"]},
+                bo_history=bo_hist,
+                model=fmd_model,
                 save=True,
             )
             print(f"  ✓ Phase diagram saved")

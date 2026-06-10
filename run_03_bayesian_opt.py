@@ -19,6 +19,9 @@ Output:
 import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from multiprocessing import freeze_support
+freeze_support()
+
 import numpy as np
 import json
 import config as cfg

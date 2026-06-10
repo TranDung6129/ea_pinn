@@ -105,8 +105,8 @@ class AdaptiveSampler:
             else:
                 p_exp = p_hat
 
-            # Batch to avoid OOM
-            batch = 4096
+            # Batch to avoid OOM (conservative 60-70% VRAM usage)
+            batch = 8192
             u_vals = []
             for i in range(0, N, batch):
                 u_vals.append(model(pts[i:i+batch], p_exp[i:i+batch]))

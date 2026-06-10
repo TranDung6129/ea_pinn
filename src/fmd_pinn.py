@@ -93,11 +93,13 @@ class FMDPINNTrainer:
         n_exploit = int(self.oracle_budget * cfg.EXPLOIT_RATIO)
         n_explore = self.oracle_budget - n_exploit
 
-        # ── Phase 0: initial warm-up training ─────────────────────────────
-        print("[Phase 0] Warm-up training on random parameter samples …")
-        self._warmup_training(n_steps=cfg.ADAM_EPOCHS)
-
         # ── Resume from checkpoint if available ──────────────────────────
+        loaded = self.load_checkpoint()
+        if not loaded:
+            # ── Phase 0: initial warm-up training ─────────────────────────
+            print("[Phase 0] Warm-up training on random parameter samples …")
+            self._warmup_training(n_steps=cfg.ADAM_EPOCHS)
+
         oracle_call = getattr(self, "_resume_from", 0)
         if oracle_call > 0:
             print(f"[RESUME] Continuing from oracle call {oracle_call}")
@@ -203,12 +205,11 @@ class FMDPINNTrainer:
 
     def _outer_ascent(self, oracle_call: int = 0) -> torch.Tensor:
         """
-        Two-phase outer loop:
-          Phase 1 (first 60% of budget): maximize E → find collapse region
-          Phase 2 (last 40% of budget):  minimize |E| → converge to boundary ∂C
+        Coverage-aware multi-start outer ascent.
 
-        Phase 2 seeds from previously discovered collapse points (oracle history),
-        ensuring boundary-seeking starts from the right side of ∂C.
+        Phase 1 (first 40% budget): K LHS starts, score = E + λ*diversity
+        Phase 2 (last 60% budget):  K collapse starts, score = -|E| + λ*diversity
+        λ decreases linearly from OUTER_DIV_WEIGHT → 0 over budget.
         """
         batch = self.sampler.sample()
         xyt   = batch["xyt_pde"]
@@ -216,51 +217,87 @@ class FMDPINNTrainer:
         phase1_end = int(self.oracle_budget * 0.40)
         in_phase2  = (oracle_call >= phase1_end)
 
+        progress   = oracle_call / max(self.oracle_budget, 1)
+        lambda_div  = cfg.OUTER_DIV_WEIGHT * (1.0 - progress)
+
+        K = cfg.OUTER_K_STARTS
         if in_phase2 and len(self.oracle_history) > 0:
-            # Seed from a random collapse point in history
             collapse_pts = [r for r in self.oracle_history if r["E_true"] > 0]
-            if collapse_pts:
-                rec = collapse_pts[np.random.randint(len(collapse_pts))]
-                from src.pinn_model import normalise_params
-                p_seed = normalise_params(
-                    torch.tensor([rec["alpha"]], device=self.device),
-                    torch.tensor([rec["beta"]],  device=self.device),
-                    torch.tensor([rec["D"]],     device=self.device),
-                ).squeeze(0)
-                p = p_seed.clone().detach().requires_grad_(True)
+            if len(collapse_pts) >= K:
+                idxs = np.random.choice(len(collapse_pts), K, replace=False)
+                starts = []
+                for idx in idxs:
+                    rec = collapse_pts[idx]
+                    p_seed = normalise_params(
+                        torch.tensor([rec["alpha"]], device=self.device),
+                        torch.tensor([rec["beta"]],  device=self.device),
+                        torch.tensor([rec["D"]],     device=self.device),
+                    ).squeeze(0)
+                    noise = torch.randn(3, device=self.device) * 0.05
+                    starts.append(clamp_normalised(p_seed + noise))
             else:
-                p = self.p_hat.clone().detach().requires_grad_(True)
+                starts = self._lhs_starts(K)
         else:
-            p = self.p_hat.clone().detach().requires_grad_(True)
+            starts = self._lhs_starts(K)
 
-        for step in range(cfg.OUTER_STEPS):
-            p_clamped = clamp_normalised(p)
-            E = failure_functional(self.model, xyt, p_clamped)
-
-            if in_phase2:
-                # Minimize |E| — gradient descent on E² → finds zero crossing
-                obj = E ** 2
-            else:
-                # Maximize E — standard gradient ascent
-                obj = -E
-
-            obj.backward()
-
+        candidates = []
+        for p_start in starts:
+            p = p_start.clone().detach().requires_grad_(True)
+            for step in range(cfg.OUTER_STEPS):
+                p_clamped = clamp_normalised(p)
+                E = failure_functional(self.model, xyt, p_clamped)
+                obj = E ** 2 if in_phase2 else -E
+                obj.backward()
+                with torch.no_grad():
+                    grad  = p.grad.clone()
+                    gnorm = grad.norm()
+                    if gnorm > cfg.GRAD_CLIP:
+                        grad = grad * cfg.GRAD_CLIP / gnorm
+                    lr = cfg.OUTER_LR * (0.3 if in_phase2 else 1.0)
+                    p.data -= lr * grad
+                    p.data  = clamp_normalised(p.data)
+                    p.grad.zero_()
             with torch.no_grad():
-                grad = p.grad.clone()
-                gnorm = grad.norm()
-                if gnorm > cfg.GRAD_CLIP:
-                    grad = grad * cfg.GRAD_CLIP / gnorm
+                E_final = failure_functional(
+                    self.model, xyt, clamp_normalised(p)).item()
+            candidates.append((clamp_normalised(p.detach()), E_final))
 
-                # Phase 2: descent on |E| (smaller LR for precision)
-                lr = cfg.OUTER_LR * (0.3 if in_phase2 else 1.0)
-                p.data -= lr * grad
-                p.data  = clamp_normalised(p.data)
-                p.grad.zero_()
+        if len(self.oracle_history) > 0:
+            hist_pts = torch.stack([
+                normalise_params(
+                    torch.tensor([r["alpha"]], device=self.device),
+                    torch.tensor([r["beta"]],  device=self.device),
+                    torch.tensor([r["D"]],     device=self.device),
+                ).squeeze(0)
+                for r in self.oracle_history
+            ])
+            best_p, best_score = None, -float('inf')
+            for p_cand, E_val in candidates:
+                dists    = torch.norm(hist_pts - p_cand.unsqueeze(0), dim=1)
+                min_dist = dists.min().item()
+                score = (-abs(E_val) + lambda_div * min_dist
+                         if in_phase2
+                         else E_val + lambda_div * min_dist)
+                if score > best_score:
+                    best_score = score
+                    best_p = p_cand
+            if best_p is None:
+                best_p = max(candidates, key=lambda x: x[1])[0]
+        else:
+            best_p = max(candidates, key=lambda x: x[1])[0]
 
         if not in_phase2:
-            self.p_hat = p.detach()
-        return clamp_normalised(p.detach())
+            self.p_hat = best_p.detach()
+        return clamp_normalised(best_p)
+
+    def _lhs_starts(self, K: int) -> list:
+        """Latin Hypercube Sampling trong [0,1]³."""
+        perms = [torch.randperm(K, device=self.device) for _ in range(3)]
+        lhs   = torch.zeros(K, 3, device=self.device)
+        for d in range(3):
+            lhs[:, d] = (perms[d].float() +
+                         torch.rand(K, device=self.device)) / K
+        return [clamp_normalised(lhs[k]) for k in range(K)]
 
     def _bisect_to_boundary(self) -> torch.Tensor:
         """
@@ -339,18 +376,26 @@ class FMDPINNTrainer:
     # ── Inner training ────────────────────────────────────────────────────────
 
     def _warmup_training(self, n_steps: int = 3000):
-        """Supervised pretraining on FEM data before oracle loop."""
+        """Supervised pretraining on FEM data before oracle loop.
+        Auto-restarts if initialization is bad (mean E error > threshold).
+        """
         from src.fem_oracle import solve_reaction_diffusion
         from src.pinn_model import normalise_params
         import numpy as np
-        self.model.train()
+
         print("  [Warmup] Collecting FEM data for pretraining...")
         pretrain_cases = [
             (2.0,  4.0, 0.1,   "stable"),
             (10.0, 1.0, 0.01,  "collapse"),
-            (5.0,  1.5, 0.05,  "near-boundary"),
             (14.0, 0.5, 0.005, "extreme collapse"),
             (1.5,  4.0, 0.2,   "stable2"),
+            # Near-boundary cases covering full β range
+            (4.0,  4.0, 0.007, "near_boundary_high_beta"),
+            (5.0,  2.5, 0.01,  "near_boundary_mid_beta"),
+            (6.0,  1.5, 0.01,  "near_boundary_low_beta"),
+            # High D cases to prevent D-bias
+            (8.0,  2.0, 0.1,   "collapse_high_D"),
+            (3.0,  3.0, 0.15,  "near_boundary_high_D"),
         ]
         fem_data = []
         for alpha, beta, D, label in pretrain_cases:
@@ -361,39 +406,97 @@ class FMDPINNTrainer:
                 torch.tensor([D],     device=self.device)).squeeze(0)
             fem_data.append((p, r, label))
             print(f"    {label}: E={r['E']:+.3f}")
+
         nx = cfg.FEM_NX
         x  = np.linspace(0, 1, nx)
         X, Y = np.meshgrid(x, x)
-        for step in range(n_steps):
-            idx  = step % len(fem_data)
-            p_hat, fem_r, label = fem_data[idx]
-            t_idx = np.random.randint(0, len(fem_r["traj"]))
-            t_val = float(fem_r["t_eval"][t_idx])
-            u_fem = torch.tensor(
-                fem_r["traj"][t_idx].ravel(),
-                dtype=torch.float32, device=self.device)
-            xyt = torch.tensor(
-                np.column_stack([X.ravel(), Y.ravel(),
-                                 np.full(nx*nx, t_val)]),
-                dtype=torch.float32, device=self.device)
-            u_pred = self.model(xyt, p_hat)
-            loss   = ((u_pred - u_fem)**2).mean()
-            self.adam.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-            self.adam.step()
-            if step % 500 == 0:
-                print(f"  [Warmup] step={step:4d}/{n_steps}  loss={loss.item():.4e}")
-        self.model.eval()
-        print("  [Warmup] Post-pretrain E_pinn check:")
-        for p_hat, fem_r, label in fem_data:
+
+        def _run_warmup_once(lr: float, attempt: int) -> float:
+            """Run one warmup attempt, return mean E error."""
+            # Use a different random seed for each attempt.
+            torch.manual_seed(self.seed * 100 + attempt)
+
+            # Reset model weights
+            for layer in self.model.modules():
+                if hasattr(layer, 'reset_parameters'):
+                    layer.reset_parameters()
+
+            warmup_adam = torch.optim.Adam(self.model.parameters(), lr=lr)
+
+            self.model.train()
+            for step in range(n_steps):
+                idx = step % len(fem_data)
+                p_hat, fem_r, label = fem_data[idx]
+                t_idx = np.random.randint(0, len(fem_r["traj"]))
+                t_val = float(fem_r["t_eval"][t_idx])
+                u_fem = torch.tensor(
+                    fem_r["traj"][t_idx].ravel(),
+                    dtype=torch.float32, device=self.device)
+                xyt = torch.tensor(
+                    np.column_stack([X.ravel(), Y.ravel(),
+                                     np.full(nx*nx, t_val)]),
+                    dtype=torch.float32, device=self.device)
+                u_pred = self.model(xyt, p_hat)
+                loss   = ((u_pred - u_fem)**2).mean()
+                warmup_adam.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(
+                    self.model.parameters(), 0.5)
+                warmup_adam.step()
+                if step % 500 == 0:
+                    print(f"  [Warmup] step={step:4d}/{n_steps}"
+                          f"  loss={loss.item():.4e}")
+
+            # Check quality
+            self.model.eval()
             xyt_test = torch.rand(256, 3, device=self.device)
-            xyt_test[:,2] *= cfg.T_END
+            xyt_test[:, 2] *= cfg.T_END
+            errors = []
+            print("  [Warmup] Post-pretrain E_pinn check:")
             with torch.no_grad():
-                N = xyt_test.shape[0]
-                p_exp = p_hat.unsqueeze(0).expand(N, -1)
-                E = self.model(xyt_test, p_exp).max().item() - cfg.U_THRESHOLD
-            print(f"    {label}: E_pinn={E:+.3f}  E_true={fem_r['E']:+.3f}")
+                for p_hat, fem_r, label in fem_data:
+                    N = xyt_test.shape[0]
+                    p_exp = p_hat.unsqueeze(0).expand(N, -1)
+                    E = self.model(xyt_test, p_exp).max().item() \
+                        - cfg.U_THRESHOLD
+                    err = abs(E - fem_r['E'])
+                    errors.append(err)
+                    print(f"    {label}: E_pinn={E:+.3f}"
+                          f"  E_true={fem_r['E']:+.3f}")
+            self.model.train()
+            return float(np.mean(errors))
+
+        # ── Auto-restart loop ────────────────────────────────────────────
+        best_error = float('inf')
+        best_state = None
+        lrs = [1e-4, 5e-5, 2e-5]  # reduce LR each restart
+
+        for attempt in range(cfg.WARMUP_MAX_RESTARTS):
+            lr = lrs[min(attempt, len(lrs) - 1)]
+            print(f"  [Warmup] Attempt {attempt+1}/{cfg.WARMUP_MAX_RESTARTS}"
+                  f"  lr={lr:.0e}")
+            mean_err = _run_warmup_once(lr, attempt)
+            print(f"  [Warmup] Mean E error = {mean_err:.4f}"
+                  f"  (threshold={cfg.WARMUP_BAD_THRESHOLD})")
+
+            if mean_err < best_error:
+                best_error = mean_err
+                best_state = {k: v.clone()
+                              for k, v in self.model.state_dict().items()}
+
+            if mean_err <= cfg.WARMUP_BAD_THRESHOLD:
+                print(f"  [Warmup] ✓ Good initialization"
+                      f"  (error={mean_err:.4f})")
+                break
+            else:
+                print(f"  [Warmup] ✗ Bad initialization, restarting...")
+
+        # Load best state found across all attempts
+        if best_state is not None:
+            self.model.load_state_dict(best_state)
+            print(f"  [Warmup] Loaded best state"
+                  f"  (error={best_error:.4f})")
+
         self.model.train()
 
     def _inner_train(self, p_hat: torch.Tensor, n_steps: int = 500):
@@ -407,9 +510,12 @@ class FMDPINNTrainer:
         import numpy as np
         
         anchor_cases = [
-            (2.0, 4.0, 0.1, -1.219),
-            (10.0, 1.0, 0.01, 1.662),
-            (14.0, 0.5, 0.005, 2.167),
+            (2.0,  4.0, 0.1,   -1.219),
+            (10.0, 1.0, 0.01,   1.662),
+            (14.0, 0.5, 0.005,  2.167),
+            (4.0,  4.0, 0.007, -0.522),   # near boundary high beta
+            (8.0,  2.0, 0.1,    0.500),   # collapse high D
+            (3.0,  3.0, 0.15,  -0.300),   # near boundary high D
         ]
         replay = []
         for a, b, D, e_true in anchor_cases:
@@ -432,10 +538,13 @@ class FMDPINNTrainer:
             xyt_test = torch.rand(256, 3, device=self.device)
             xyt_test[:, 2] *= cfg.T_END
             sup_loss = 0.0
+            total_w  = 0.0
             for rp, e_true in replay:
                 e_pred = failure_functional(self.model, xyt_test, rp)
-                sup_loss = sup_loss + (e_pred - e_true)**2
-            return sup_loss / len(replay)
+                w = 1.0 / (abs(e_true) + 0.3)
+                sup_loss = sup_loss + w * (e_pred - e_true)**2
+                total_w  = total_w + w
+            return sup_loss / total_w
 
         # Adam phase
         for _ in range(n_steps):
@@ -533,15 +642,31 @@ class FMDPINNTrainer:
             saved = json.load(f)
         self.oracle_history = saved["oracle_history"]
         self.phase_diagram  = saved["oracle_history"][:]
+        seen = set()
+        deduped = []
+        for r in self.oracle_history:
+            if r["oracle_call"] not in seen:
+                seen.add(r["oracle_call"])
+                deduped.append(r)
+        self.oracle_history = deduped
+        self.phase_diagram  = deduped[:]
         last_call = int(saved["oracle_call"])
         ckpt = os.path.join(cfg.CKPT_DIR, f"{name}_call{last_call}.pt")
         if os.path.exists(ckpt):
-            self.model.load_state_dict(
-                torch.load(ckpt, map_location=self.device))
-            self._resume_from = last_call
-            print(f"[RESUME] Loaded call={last_call}, "
-                  f"history={len(self.oracle_history)} records")
-            return True
+            try:
+                self.model.load_state_dict(
+                    torch.load(ckpt, map_location=self.device))
+                self._resume_from = last_call
+                print(f"[RESUME] Loaded call={last_call}, "
+                      f"history={len(self.oracle_history)} records")
+                return True
+            except RuntimeError as e:
+                print(f"[RESUME] Checkpoint incompatible — starting fresh.")
+                print(f"         ({e})")
+                self.oracle_history = []
+                self.phase_diagram  = []
+                self._resume_from   = 0
+                return False
         print("[RESUME] Checkpoint .pt not found, starting fresh.")
         return False
 

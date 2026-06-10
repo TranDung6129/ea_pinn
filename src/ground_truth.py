@@ -89,7 +89,7 @@ def generate_ground_truth(n_grid: int = None,
     # Run in parallel
     from src.fem_oracle import batch_oracle
     t0    = time.time()
-    E_fem = batch_oracle(params, n_jobs=n_jobs)
+    E_fem = batch_oracle(params)
     elapsed = time.time() - t0
     print(f"[GT] {N} FEM calls completed in {elapsed/60:.1f} min")
 

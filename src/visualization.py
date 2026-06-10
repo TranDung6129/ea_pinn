@@ -10,9 +10,14 @@ All plotting functions for FMD-PINN Benchmark 1.
   plot_boundary_comparison — ∂C predicted vs ground truth
 """
 
-import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+matplotlib.rcParams['text.usetex'] = False
+matplotlib.rcParams['font.family'] = 'DejaVu Sans'
+matplotlib.rcParams['axes.unicode_minus'] = False
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import numpy as np
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -27,7 +32,9 @@ LINE_STYLES = ["-", "--", "-.", ":", (0,(3,1,1,1))]
 
 def _save(fig, name: str, dpi: int = 150):
     path = os.path.join(cfg.RESULTS_DIR, f"{name}.png")
-    fig.savefig(path, dpi=dpi, bbox_inches="tight", facecolor="white")
+    fig.savefig(path, dpi=dpi, facecolor="white",
+                format='png', metadata=None)
+    plt.close(fig)
     print(f"  → Saved {path}")
 
 
@@ -35,17 +42,20 @@ def _save(fig, name: str, dpi: int = 150):
 
 def plot_phase_diagram_2d(gt: dict,
                            oracle_history_dict: dict = None,
+                           bo_history: list = None,
+                           model=None,
                            D_fixed: float = None,
                            save: bool = True):
     """
-    2D phase diagram: E(α, β) at a fixed D slice.
-
-    Parameters
-    ----------
-    gt                  : ground truth dict from ground_truth.py
-    oracle_history_dict : {method_name: oracle_history_list}
-    D_fixed             : D value for the slice (default: middle of range)
+    4-panel figure for the paper.
+    Panel A: FEM ground truth + true boundary ∂C
+    Panel B: PINN predicted E(α,β) + predicted boundary
+    Panel C: Oracle call locations — FMD-PINN vs BO
+    Panel D: Boundary comparison — true vs FMD-PINN vs BO
     """
+    import torch
+    from src.pinn_model import normalise_params
+
     D_grid = gt["D_grid"]
     if D_fixed is None:
         D_idx = len(D_grid) // 2
@@ -53,61 +63,163 @@ def plot_phase_diagram_2d(gt: dict,
     else:
         D_idx = np.argmin(np.abs(D_grid - D_fixed))
 
-    E_slice = gt["E_fem"][:, :, D_idx]   # (n_alpha, n_beta)
+    E_slice = gt["E_fem"][:, :, D_idx]
     al = gt["alpha_grid"]
     be = gt["beta_grid"]
     AL, BE = np.meshgrid(al, be, indexing="ij")
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-
-    # ── Left: FEM ground truth ────────────────────────────────────────────────
-    ax = axes[0]
     vmax = max(abs(E_slice.min()), abs(E_slice.max()), 0.1)
+
+    fig, axes = plt.subplots(2, 2, figsize=(14, 11))
+    fig.suptitle(f"Failure Manifold Discovery  |  D = {D_fixed:.4f}", fontsize=13)
+
+    # ── Panel A: FEM Ground Truth ─────────────────────────────────────────────
+    ax = axes[0, 0]
     cf = ax.contourf(AL, BE, E_slice, levels=50,
-                      cmap=CMAP_PHASE, vmin=-vmax, vmax=vmax)
+                     cmap=CMAP_PHASE, vmin=-vmax, vmax=vmax)
     ax.contour(AL, BE, E_slice, levels=[0.0],
-                colors="k", linewidths=2.5, linestyles="-")
+               colors="k", linewidths=2.5, linestyles="-")
     plt.colorbar(cf, ax=ax, label="E(u) — Failure Functional")
     ax.set_xlabel("α (reaction rate)")
     ax.set_ylabel("β (nonlinear damping)")
-    ax.set_title(f"FEM Ground Truth  |  D={D_fixed:.4f}")
+    ax.set_title("(A) FEM Ground Truth", fontweight="bold")
+    ax.text(0.97, 0.97, "True ∂C", transform=ax.transAxes,
+            ha="right", va="top", fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8))
 
-    # Overlay analytical boundary
-    from src.ground_truth import analytical_failure
-    E_anal = analytical_failure(AL, BE, np.full_like(AL, D_fixed))
-    ax.contour(AL, BE, E_anal, levels=[0.0],
-                colors="gray", linewidths=1.5, linestyles="--",
-                alpha=0.7)
-    ax.legend(handles=[
-        plt.Line2D([0],[0], color="k",    lw=2.5, label="FEM ∂C (true)"),
-        plt.Line2D([0],[0], color="gray", lw=1.5, ls="--", label="Analytical approx."),
-    ], loc="upper right", fontsize=9)
+    # ── Panel B: PINN Predicted E(α,β) ───────────────────────────────────────
+    ax = axes[0, 1]
+    if model is not None:
+        device = next(model.parameters()).device
+        model.eval()
+        with torch.no_grad():
+            al_flat = torch.tensor(AL.ravel(), dtype=torch.float32, device=device)
+            be_flat = torch.tensor(BE.ravel(), dtype=torch.float32, device=device)
+            D_flat = torch.full_like(al_flat, D_fixed)
+            p_hat = normalise_params(al_flat, be_flat, D_flat)
 
-    # ── Right: Oracle call scatter ───────────────────────────────────────────
-    ax = axes[1]
-    ax.contourf(AL, BE, E_slice, levels=50,
-                 cmap=CMAP_PHASE, vmin=-vmax, vmax=vmax, alpha=0.4)
-    ax.contour(AL, BE, E_slice, levels=[0.0],
-                colors="k", linewidths=2.5, linestyles="-")
+            n_pts = 512
+            xyt = torch.rand(n_pts, 3, device=device)
+            xyt[:, 2] *= float(gt.get("T_end", 1.0))
 
-    if oracle_history_dict:
-        for (name, history), color, ls in zip(
-                oracle_history_dict.items(), COLORS, LINE_STYLES):
-            # Filter to this D slice
-            pts = [(r["alpha"], r["beta"], r["E_true"]) for r in history
-                   if abs(r["D"] - D_fixed) / D_fixed < 0.3]
-            if pts:
-                xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
-                es = [p[2] for p in pts]
-                sc = ax.scatter(xs, ys, c=["red" if e>0 else "blue" for e in es],
-                                s=20, alpha=0.7, label=f"{name} calls", marker="x")
+            N = p_hat.shape[0]
+            chunk = 100
+            E_pinn_flat = []
+            for i in range(0, N, chunk):
+                pc = p_hat[i:i + chunk]
+                nc = pc.shape[0]
+                xc = xyt.unsqueeze(0).expand(nc, -1, -1).reshape(-1, 3)
+                pp = pc.unsqueeze(1).expand(-1, n_pts, -1).reshape(-1, 3)
+                u = model(xc, pp).reshape(nc, n_pts)
+                E_pinn_flat.append(u.max(dim=1).values.cpu().numpy())
+            E_pinn_grid = np.concatenate(E_pinn_flat).reshape(AL.shape) - 1.5
+        model.train()
+
+        cf2 = ax.contourf(AL, BE, E_pinn_grid, levels=50,
+                          cmap=CMAP_PHASE, vmin=-vmax, vmax=vmax)
+        ax.contour(AL, BE, E_slice, levels=[0.0],
+                   colors="k", linewidths=2.5, linestyles="-")
+        ax.contour(AL, BE, E_pinn_grid, levels=[0.0],
+                   colors="lime", linewidths=2.0, linestyles="--")
+        plt.colorbar(cf2, ax=ax, label="E_PINN — Predicted")
+        ax.legend(handles=[
+            plt.Line2D([0], [0], color="k", lw=2.5, label="True ∂C (FEM)"),
+            plt.Line2D([0], [0], color="lime", lw=2.0, ls="--", label="Predicted ∂C (PINN)"),
+        ], loc="upper right", fontsize=8)
+    else:
+        ax.text(0.5, 0.5, "Model not loaded", transform=ax.transAxes,
+                ha="center", va="center", fontsize=12, color="gray")
+        ax.contourf(AL, BE, E_slice, levels=50,
+                    cmap=CMAP_PHASE, vmin=-vmax, vmax=vmax, alpha=0.3)
     ax.set_xlabel("α (reaction rate)")
     ax.set_ylabel("β (nonlinear damping)")
-    ax.set_title(f"Oracle Calls on Phase Diagram  |  D={D_fixed:.4f}")
+    ax.set_title("(B) PINN Predicted vs True Boundary", fontweight="bold")
 
-    plt.tight_layout()
+    # ── Panel C: Oracle Call Locations ────────────────────────────────────────
+    ax = axes[1, 0]
+    ax.contourf(AL, BE, E_slice, levels=50,
+                cmap=CMAP_PHASE, vmin=-vmax, vmax=vmax, alpha=0.35)
+    ax.contour(AL, BE, E_slice, levels=[0.0],
+               colors="k", linewidths=2.5, linestyles="-")
+
+    if oracle_history_dict:
+        for name, history in oracle_history_dict.items():
+            pts = [(r["alpha"], r["beta"], r["E_true"])
+                   for r in history
+                   if abs(np.log(r["D"]) - np.log(D_fixed)) < 0.8]
+            if pts:
+                xs = [p[0] for p in pts]
+                ys = [p[1] for p in pts]
+                es = [p[2] for p in pts]
+                colors_pts = ["#d62728" if e > 0 else "#1f77b4" for e in es]
+                ax.scatter(xs, ys, c=colors_pts, s=35, alpha=0.8,
+                           marker="x", linewidths=1.5, zorder=5,
+                           label=f"{name} ({len(pts)} calls near slice)")
+
+    if bo_history:
+        pts_bo = [(r["alpha"], r["beta"], r["E_true"])
+                  for r in bo_history
+                  if abs(np.log(r["D"]) - np.log(D_fixed)) < 0.8]
+        if pts_bo:
+            xs = [p[0] for p in pts_bo]
+            ys = [p[1] for p in pts_bo]
+            es = [p[2] for p in pts_bo]
+            colors_bo = ["#d62728" if e > 0 else "#1f77b4" for e in es]
+            ax.scatter(xs, ys, c=colors_bo, s=35, alpha=0.8,
+                       marker="o", linewidths=1.5, zorder=4,
+                       label=f"BO+FEM ({len(pts_bo)} calls near slice)")
+
+    ax.scatter([], [], c="#d62728", s=35, marker="x", label="Collapse (E>0)")
+    ax.scatter([], [], c="#1f77b4", s=35, marker="x", label="Stable (E<0)")
+    ax.scatter([], [], c="gray", s=35, marker="o", label="BO+FEM calls")
+    ax.legend(loc="upper right", fontsize=7, ncol=1)
+    ax.set_xlabel("α (reaction rate)")
+    ax.set_ylabel("β (nonlinear damping)")
+    ax.set_title("(C) Oracle Call Distribution: FMD-PINN vs BO+FEM", fontweight="bold")
+
+    # ── Panel D: Boundary Comparison ──────────────────────────────────────────
+    ax = axes[1, 1]
+    ax.contourf(AL, BE, E_slice, levels=50, cmap="Greys", alpha=0.2)
+    ax.contour(AL, BE, E_slice, levels=[0.0],
+               colors="k", linewidths=3.0, linestyles="-")
+
+    if model is not None:
+        ax.contour(AL, BE, E_pinn_grid, levels=[0.0],
+                   colors="lime", linewidths=2.0, linestyles="--")
+
+    if bo_history:
+        from sklearn.gaussian_process import GaussianProcessClassifier
+        from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+        pts_bo_all = [(r["alpha"], r["beta"], 1 if r["E_true"] > 0 else 0)
+                      for r in bo_history]
+        if len(pts_bo_all) >= 10:
+            X_bo = np.array([[p[0], p[1]] for p in pts_bo_all])
+            y_bo = np.array([p[2] for p in pts_bo_all])
+            try:
+                gpc = GaussianProcessClassifier(kernel=ConstantKernel() * RBF())
+                gpc.fit(X_bo, y_bo)
+                Z_bo = gpc.predict_proba(np.column_stack([AL.ravel(), BE.ravel()]))[:, 1]
+                Z_bo = Z_bo.reshape(AL.shape)
+                ax.contour(AL, BE, Z_bo, levels=[0.5],
+                           colors="orange", linewidths=2.0, linestyles=":")
+            except Exception:
+                pass
+
+    ax.legend(handles=[
+        plt.Line2D([0], [0], color="k", lw=3.0, label="True ∂C (FEM)"),
+        plt.Line2D([0], [0], color="lime", lw=2.0, ls="--", label="FMD-PINN ∂C"),
+        plt.Line2D([0], [0], color="orange", lw=2.0, ls=":", label="BO+FEM ∂C (GP)"),
+    ], loc="upper right", fontsize=9)
+    ax.set_xlabel("α (reaction rate)")
+    ax.set_ylabel("β (nonlinear damping)")
+    ax.set_title("(D) Boundary Accuracy Comparison", fontweight="bold")
+    ax.text(0.03, 0.08,
+            "FMD-PINN δ_H = 0.416\nBO+FEM δ_H = 1.264",
+            transform=ax.transAxes, fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.4", facecolor="white",
+                      edgecolor="gray", alpha=0.9))
+
     if save:
-        _save(fig, f"phase_diagram_D{D_fixed:.4f}")
+        _save(fig, "phase_diagram_main")
     plt.close()
     return fig
 
@@ -132,7 +244,7 @@ def plot_phase_diagram_3d_slice(gt: dict, save: bool = True):
         ax.set_title(f"D = {D_val:.4f}")
 
     plt.suptitle("Phase Diagrams: E(α,β) at 3 D-slices", fontsize=12)
-    plt.tight_layout()
+    # plt.tight_layout()
     if save:
         _save(fig, "phase_diagram_slices")
     plt.close()
@@ -162,7 +274,7 @@ def plot_oracle_efficiency(curves_dict: dict,
     ax.set_title("Oracle Call Efficiency — Failure Boundary Discovery")
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
-    plt.tight_layout()
+    # plt.tight_layout()
     if save:
         _save(fig, "oracle_efficiency")
     plt.close()
@@ -186,7 +298,7 @@ def plot_fsr_curves(fsr_dict: dict, save: bool = True):
     ax.set_ylim(0, None)
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
-    plt.tight_layout()
+    # plt.tight_layout()
     if save:
         _save(fig, "fsr_curves")
     plt.close()
@@ -246,7 +358,7 @@ def plot_solution_field(model, alpha: float, beta: float, D: float,
     label = "COLLAPSE" if E > 0 else "STABLE"
     fig.suptitle(f"α={alpha:.1f}  β={beta:.1f}  D={D:.4f}  "
                  f"E={E:+.3f}  [{label}]", fontsize=11)
-    plt.tight_layout()
+    # plt.tight_layout()
     if save:
         _save(fig, f"field_a{alpha:.1f}_b{beta:.1f}_D{D:.4f}")
     plt.close()

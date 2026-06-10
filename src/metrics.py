@@ -102,7 +102,7 @@ def extract_boundary_from_pinn(model,
 
     model.eval()
     E_vals = np.empty(len(params_phys), dtype=np.float32)
-    batch_size = 256   # parameter points per batch — safe for 4 GB GPU
+    batch_size = 1024   # conservative 60-70% VRAM usage
 
     with torch.no_grad():
         for i in range(0, len(params_phys), batch_size):
@@ -330,7 +330,7 @@ def coverage_ratio(oracle_history: List[Dict],
         xyt_np[:, 2] *= cfg.T_END
         xyt = torch.tensor(xyt_np, device=device)
 
-        batch_size = 256
+        batch_size = 1024  # conservative 60-70% VRAM usage
         with torch.no_grad():
             for i in range(0, len(params), batch_size):
                 b = params[i : i + batch_size]

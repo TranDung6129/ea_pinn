@@ -75,7 +75,8 @@ class FourierEmbedding(nn.Module):
 
     def forward(self, xyt: torch.Tensor) -> torch.Tensor:
         """xyt: (..., 3)  →  (..., 2·n_fourier)"""
-        proj = 2.0 * torch.pi * (xyt @ self.B.T)   # (..., n_fourier)
+        B = self.B.to(xyt.device)
+        proj = 2.0 * torch.pi * (xyt @ B.T)   # (..., n_fourier)
         return torch.cat([torch.sin(proj), torch.cos(proj)], dim=-1)
 
 
@@ -123,9 +124,12 @@ class ParametricPINN(nn.Module):
                 nn.init.zeros_(m.bias)
 
     def forward(self, xyt, p_hat):
-        N = xyt.shape[0]
+        N      = xyt.shape[0]
+        device = xyt.device
         if p_hat.dim() == 1:
             p_hat = p_hat.unsqueeze(0).expand(N, -1)
+        p_hat = p_hat.to(device)
+        self.net.to(device)
         h   = self.fourier(xyt)          # (N, fourier_out)
         inp = torch.cat([h, p_hat], dim=-1)  # (N, fourier_out+3)
         u   = self.net(inp).squeeze(-1)  # (N,)

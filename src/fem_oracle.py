@@ -65,20 +65,19 @@ def solve_reaction_diffusion(alpha, beta, D, nx=None, t_end=None, dense=False):
 
 
 def _oracle_worker(row):
+    """Single FEM oracle call."""
     alpha, beta, D = float(row[0]), float(row[1]), float(row[2])
     return solve_reaction_diffusion(alpha, beta, D)["E"]
 
 
-def batch_oracle(params, n_jobs=None, show_progress=True):
-    """
-    Run FEM oracle sequentially with progress bar.
-    Sequential is necessary because torch/CUDA context breaks fork().
-    At 0.3-0.7s per call: 3375 calls ~ 20 min; 1000 calls ~ 5 min.
-    """
+def batch_oracle(params, show_progress=True):
+    """Sequential execution — Windows-safe, no multiprocessing."""
     import time
+
     N = len(params)
+
     if show_progress:
-        sys.stdout.write("  Running {} FEM simulations (sequential, CUDA-safe)...\n".format(N))
+        sys.stdout.write(f"  Running {N} FEM simulations (sequential)...\n")
         sys.stdout.flush()
 
     results = []
@@ -94,14 +93,12 @@ def batch_oracle(params, n_jobs=None, show_progress=True):
             eta  = (N - done) / max(rate, 0.001)
             pct  = done / N
             bar  = "#" * int(25 * pct) + "-" * (25 - int(25 * pct))
-            sys.stdout.write("  [{}] {}/{} {:.1f}sim/s ETA {:.0f}min    \r".format(
-                bar, done, N, rate, eta / 60))
+            sys.stdout.write(f"  [{bar}] {done}/{N} {rate:.1f}sim/s ETA {eta/60:.0f}min    \r")
             sys.stdout.flush()
 
     if show_progress:
         el = time.time() - t0
-        sys.stdout.write("\n  Done {} sims in {:.1f}min ({:.1f}sim/s)\n".format(
-            N, el / 60, N / max(el, 0.001)))
+        sys.stdout.write(f"\n  Done {N} sims in {el/60:.1f}min ({N/max(el, 0.001):.1f}sim/s)\n")
         sys.stdout.flush()
 
     return np.array(results)

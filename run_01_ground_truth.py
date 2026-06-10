@@ -20,6 +20,9 @@ Checkpoint CP1:
 import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from multiprocessing import freeze_support
+freeze_support()
+
 import config as cfg
 
 def main():

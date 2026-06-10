@@ -11,6 +11,9 @@ Changes vs original:
 import sys, os, time, json, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from multiprocessing import freeze_support
+freeze_support()
+
 import numpy as np
 import config as cfg
 from src.fmd_pinn     import FMDPINNTrainer
@@ -150,4 +153,23 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
+    import io
+
+    class TeeOutput:
+        def __init__(self, *streams):
+            self.streams = streams
+        def write(self, data):
+            for s in self.streams:
+                s.write(data)
+                s.flush()
+        def flush(self):
+            for s in self.streams:
+                s.flush()
+
+    log_path = os.path.join(os.path.dirname(__file__), "results", "run04_log.txt")
+    log_file = open(log_path, "w", buffering=1, encoding="utf-8")
+    utf8_stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stdout = TeeOutput(utf8_stdout, log_file)
+    sys.stderr = sys.stdout
     main()
