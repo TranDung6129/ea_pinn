@@ -495,6 +495,7 @@ def compute_all_metrics(oracle_history: List[Dict],
     return {
         "hausdorff_final": float(hausdorff_curve[-1]) if len(hausdorff_curve) > 0 else np.inf,
         "hausdorff_curve": hausdorff_curve.tolist(),
+        "hausdorff_curve_pinn": hausdorff_curve.tolist(),  # alias: PINN-based
         "n_delta":         n_delta,
         "fsr":             fsr,
         "fsr_curve":       fsr_curve.tolist(),
