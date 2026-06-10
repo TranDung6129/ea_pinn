@@ -43,11 +43,8 @@ STYLE = {
     "BO+FEM":              dict(color="tab:purple", ls=":"),
 }
 # Keys to try for the PINN-based (BPE) Hausdorff curve, in priority order.
-PINN_CURVE_KEYS = ["hausdorff_curve_pinn", "bpe_curve",
-                   "pinn_hausdorff_curve", "hausdorff_pinn"]
+PINN_CURVE_KEYS = ["hausdorff_curve_pinn"]   # exact key confirmed in JSON
 LEGACY_CURVE_KEY = "hausdorff_curve"
-# A5 metrics: ckpt_name_base was passed → hausdorff_curve IS PINN-based
-# List variants that use PINN-based curve stored under the legacy key
 PINN_VARIANTS = {"A5_full_fmd"}
 DELTA_TARGET = 0.1
 DPI = 300
@@ -78,6 +75,7 @@ def pick_hausdorff_curve(m: dict, variant: str = "") -> tuple:
 
 def stack_curves(curves: list) -> tuple:
     """Pad/truncate to common length, return (mean, std, n_len). inf → nan."""
+    curves = [c for c in curves if c is not None and len(c) > 0]
     if not curves:
         return None, None, 0
     L = min(len(c) for c in curves)
