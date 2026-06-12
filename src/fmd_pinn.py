@@ -407,14 +407,18 @@ class FMDPINNTrainer:
         from src.pinn_model import normalise_params
         from src.fem_oracle import solve_reaction_diffusion
         anchor_params = [
+            # ── Strong-signal cases: learn global structure first ──
             (2.0,  4.0,  0.1,   "stable"),
             (10.0, 1.0,  0.01,  "collapse"),
             (14.0, 0.5,  0.005, "extreme collapse"),
             (1.5,  4.0,  0.2,   "stable2"),
+            (6.0,  1.5,  0.01,  "near_boundary_low_beta"),
+            (8.0,  2.0,  0.1,   "collapse_high_D"),
+            # ── Near-boundary cases ──
             (11.0, 4.0,  0.02,  "near_boundary_high_beta"),
             (7.0,  2.0,  0.03,  "near_boundary_mid_beta"),
             (5.0,  2.5,  0.3,   "near_boundary_high_D"),
-            # ── Knee anchors: low-β, boundary curvature highest ──
+            # ── Knee refinement ──
             (3.5,  1.0,  0.02,  "knee_a"),
             (4.5,  1.2,  0.02,  "knee_b"),
             (5.0,  0.8,  0.03,  "knee_c"),
@@ -455,14 +459,18 @@ class FMDPINNTrainer:
 
         print("  [Warmup] Collecting FEM data for pretraining...")
         pretrain_cases = [
+            # ── Strong-signal cases: learn global structure first ──
             (2.0,  4.0,  0.1,   "stable"),
             (10.0, 1.0,  0.01,  "collapse"),
             (14.0, 0.5,  0.005, "extreme collapse"),
             (1.5,  4.0,  0.2,   "stable2"),
+            (6.0,  1.5,  0.01,  "near_boundary_low_beta"),
+            (8.0,  2.0,  0.1,   "collapse_high_D"),
+            # ── Near-boundary cases ──
             (11.0, 4.0,  0.02,  "near_boundary_high_beta"),
             (7.0,  2.0,  0.03,  "near_boundary_mid_beta"),
             (5.0,  2.5,  0.3,   "near_boundary_high_D"),
-            # ── Knee anchors: low-β, boundary curvature highest ──
+            # ── Knee refinement ──
             (3.5,  1.0,  0.02,  "knee_a"),
             (4.5,  1.2,  0.02,  "knee_b"),
             (5.0,  0.8,  0.03,  "knee_c"),
@@ -487,7 +495,7 @@ class FMDPINNTrainer:
             print(f"    {label}: E={r['E']:+.3f}")
 
         # Sampling weights: boundary/collapse cases drawn more often
-        w = np.array([1.0 / (abs(fr["E"]) + 0.3) for _, fr, _, _ in fem_data])
+        w = np.array([1.0 / (abs(fr["E"]) + 0.5) for _, fr, _, _ in fem_data])
         w = w / w.sum()
 
         nx = cfg.FEM_NX
