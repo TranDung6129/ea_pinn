@@ -363,6 +363,10 @@ class FMDPINNTrainer:
                         best_E = E_mid
                         best_p = p_mid
         self.model.train()
+        if best_p is None:
+            # Bisection found no sign-change bracket (PINN predicts one sign
+            # everywhere). Fall back to a random LHS probe to gather data.
+            best_p = torch.rand(3, device=self.device)
         return clamp_normalised(best_p)
 
     # ── Exploration ───────────────────────────────────────────────────────────
@@ -439,17 +443,18 @@ class FMDPINNTrainer:
 
         print("  [Warmup] Collecting FEM data for pretraining...")
         pretrain_cases = [
-            (2.0,  4.0, 0.1,   "stable"),
-            (10.0, 1.0, 0.01,  "collapse"),
-            (14.0, 0.5, 0.005, "extreme collapse"),
-            (1.5,  4.0, 0.2,   "stable2"),
-            # Near-boundary cases covering full β range
-            (4.0,  4.0, 0.007, "near_boundary_high_beta"),
-            (5.0,  2.5, 0.01,  "near_boundary_mid_beta"),
-            (6.0,  1.5, 0.01,  "near_boundary_low_beta"),
-            # High D cases to prevent D-bias
-            (8.0,  2.0, 0.1,   "collapse_high_D"),
-            (3.0,  3.0, 0.15,  "near_boundary_high_D"),
+            (2.0,  4.0,  0.1,   "stable"),
+            (10.0, 1.0,  0.01,  "collapse"),
+            (14.0, 0.5,  0.005, "extreme collapse"),
+            (1.5,  4.0,  0.2,   "stable2"),
+            (11.0, 4.0,  0.02,  "near_boundary_high_beta"),
+            (7.0,  2.0,  0.03,  "near_boundary_mid_beta"),
+            (5.0,  2.5,  0.3,   "near_boundary_high_D"),
+            # ── Knee anchors: low-β, boundary curvature highest ──
+            (3.5,  1.0,  0.02,  "knee_a"),
+            (4.5,  1.2,  0.02,  "knee_b"),
+            (5.0,  0.8,  0.03,  "knee_c"),
+            (4.0,  1.5,  0.10,  "knee_d"),
         ]
         fem_data = []
         for alpha, beta, D, label in pretrain_cases:
