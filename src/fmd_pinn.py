@@ -23,6 +23,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import config as cfg
 from src.pinn_model   import ParametricPINN, normalise_params, denormalise_params, clamp_normalised, build_model
+
+def soft_max_u(u, temp=0.05):
+    """Smooth max: gradient flows to all points near the peak."""
+    w = torch.softmax(u / temp, dim=0)
+    return (w * u).sum()
 from src.loss_functions import total_loss, failure_functional, AdaptiveLossScheduler
 from src.adaptive_sampling import AdaptiveSampler
 from src.fem_oracle   import solve_reaction_diffusion
@@ -65,6 +70,7 @@ class FMDPINNTrainer:
                                    max_iter=cfg.LBFGS_STEPS,
                                    history_size=cfg.LBFGS_HISTORY,
                                    line_search_fn="strong_wolfe")
+        self.sup_optimizer = optim.Adam(self.model.parameters(), lr=1e-4)
 
         # Oracle history  list of dicts {p_hat, alpha, beta, D, E_true}
         self.oracle_history: list = []
@@ -416,13 +422,22 @@ class FMDPINNTrainer:
         ]
         replay = []
         for a, b, D, label in anchor_params:
-            r = solve_reaction_diffusion(a, b, D)
+            r = solve_reaction_diffusion(a, b, D, dense=True)
             rp = normalise_params(
                 torch.tensor([a], device=self.device),
                 torch.tensor([b], device=self.device),
                 torch.tensor([D], device=self.device)).squeeze(0)
             knee = label.startswith("knee")
-            replay.append((rp, float(r["E"]), knee))
+            
+            traj = np.array(r["traj"])
+            t_idx, iy, ix = np.unravel_index(traj.argmax(), traj.shape)
+            nx_val = traj.shape[1]
+            peak_xyt = torch.tensor(
+                [ix / (nx_val - 1), iy / (nx_val - 1), float(r["t_eval"][t_idx])],
+                dtype=torch.float32, device=self.device)
+            u_peak = float(traj.max())
+            
+            replay.append((rp, float(r["E"]), knee, peak_xyt, u_peak))
             print(f"  [Anchor] {label}: E_true={r['E']:+.3f}")
         return replay
 
@@ -460,11 +475,19 @@ class FMDPINNTrainer:
                 torch.tensor([alpha], device=self.device),
                 torch.tensor([beta],  device=self.device),
                 torch.tensor([D],     device=self.device)).squeeze(0)
-            fem_data.append((p, r, label))
+            
+            traj = np.array(r["traj"])
+            t_idx, iy, ix = np.unravel_index(traj.argmax(), traj.shape)
+            nx_val = traj.shape[1]
+            peak_xyt = torch.tensor(
+                [ix / (nx_val - 1), iy / (nx_val - 1), float(r["t_eval"][t_idx])],
+                dtype=torch.float32, device=self.device)
+            
+            fem_data.append((p, r, label, peak_xyt))
             print(f"    {label}: E={r['E']:+.3f}")
 
         # Sampling weights: boundary/collapse cases drawn more often
-        w = np.array([1.0 / (abs(fr["E"]) + 0.3) for _, fr, _ in fem_data])
+        w = np.array([1.0 / (abs(fr["E"]) + 0.3) for _, fr, _, _ in fem_data])
         w = w / w.sum()
 
         nx = cfg.FEM_NX
@@ -490,7 +513,7 @@ class FMDPINNTrainer:
 
             for step in range(n_steps):
                 idx = np.random.choice(len(fem_data), p=w)
-                p_hat, fem_r, label = fem_data[idx]
+                p_hat, fem_r, label, _ = fem_data[idx]
                 t_idx = np.random.randint(0, len(fem_r["traj"]))
                 t_val = float(fem_r["t_eval"][t_idx])
                 u_fem = torch.tensor(fem_r["traj"][t_idx].ravel(),
@@ -503,7 +526,7 @@ class FMDPINNTrainer:
                 u_pred = self.model(xyt, p_hat)
 
                 loss_field = ((u_pred - u_fem)**2).mean()
-                loss_peak  = (u_pred.max() - u_fem.max())**2
+                loss_peak  = (soft_max_u(u_pred) - u_fem.max())**2
 
                 loss = loss_field + LAMBDA_PEAK * loss_peak
                 warm_opt.zero_grad()
@@ -517,12 +540,13 @@ class FMDPINNTrainer:
             self.model.eval()
             errs, sign_ok = [], True
             print("  [Warmup] Post-pretrain E_pinn check:")
-            for p_hat, fem_r, label in fem_data:
-                xyt_test = torch.rand(512, 3, device=self.device)
-                xyt_test[:, 2] *= cfg.T_END
+            for p_hat, fem_r, label, peak_xyt in fem_data:
+                xyt_test = self._replay_eval_grid
                 with torch.no_grad():
                     p_exp = p_hat.unsqueeze(0).expand(xyt_test.shape[0], -1)
-                    E = self.model(xyt_test, p_exp).max().item() - cfg.U_THRESHOLD
+                    u_grid = self.model(xyt_test, p_exp)
+                    u_pk = self.model(peak_xyt.unsqueeze(0), p_hat.unsqueeze(0)).squeeze()
+                    E = max(u_grid.max().item(), u_pk.item()) - cfg.U_THRESHOLD
                 e_true = float(fem_r["E"])
                 errs.append(abs(E - e_true))
                 if abs(e_true) > SIGN_BAND and np.sign(E) != np.sign(e_true):
@@ -567,7 +591,7 @@ class FMDPINNTrainer:
                 torch.tensor([rec["beta"]],  device=self.device),
                 torch.tensor([rec["D"]],     device=self.device)).squeeze(0)
             knee = (3.0 <= rec["alpha"] <= 6.0) and (rec["beta"] < 1.5)
-            replay.append((rec_p, float(rec["E_true"]), knee))
+            replay.append((rec_p, float(rec["E_true"]), knee, None, None))
 
         def compute_sup_loss():
             if len(replay) == 0:
@@ -575,12 +599,18 @@ class FMDPINNTrainer:
             xyt_test = self._replay_eval_grid
             sup_loss = 0.0
             total_w  = 0.0
-            for rp, e_true, knee in replay:
-                e_pred = failure_functional(self.model, xyt_test, rp)
+            for rp, e_true, knee, peak_xyt, u_peak in replay:
+                u_grid = self.model(xyt_test, rp.unsqueeze(0).expand(len(xyt_test), -1))
+                e_pred = soft_max_u(u_grid.squeeze()) - cfg.U_THRESHOLD
                 w = 1.0 / (abs(e_true) + 0.3)
                 if knee:
                     w *= 2.0
                 sup_loss = sup_loss + w * (e_pred - e_true)**2
+                
+                if peak_xyt is not None:
+                    u_at_peak = self.model(peak_xyt.unsqueeze(0), rp.unsqueeze(0)).squeeze()
+                    sup_loss = sup_loss + 3.0 * w * (u_at_peak - u_peak)**2
+                    
                 total_w  = total_w + w
             return sup_loss / total_w
 
@@ -623,6 +653,14 @@ class FMDPINNTrainer:
             loss.backward()
             return loss
         self.lbfgs.step(closure)
+        
+        # ── Consolidation: supervised-only, PDE cannot wash this out ──
+        for _ in range(50):
+            self.sup_optimizer.zero_grad()
+            loss_s = compute_sup_loss()
+            if isinstance(loss_s, torch.Tensor):
+                loss_s.backward()
+                self.sup_optimizer.step()
 
     def _finetune(self, p_hat: torch.Tensor, E_true: float):
         """
