@@ -275,7 +275,7 @@ def main():
                 plot_solution_field(model, alpha, beta, D, save=True, device=cfg.DEVICE)
             print(f"  ✓ Solution field plots saved (3 cases)")
     except Exception as e:
-        print(f"  ⚠ Solution field skipped: {e}")
+        print(f"  ⚠ solution field plots skipped (matplotlib/Windows): {e}")
 
     # ── Phase diagram ─────────────────────────────────────────────────────────
     fmd_hist_file = glob.glob(os.path.join(cfg.RESULTS_DIR,
