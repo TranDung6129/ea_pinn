@@ -12,9 +12,6 @@ All plotting functions for FMD-PINN Benchmark 1.
 
 import matplotlib
 matplotlib.use('Agg')
-matplotlib.rcParams['text.usetex'] = False
-matplotlib.rcParams['font.family'] = 'DejaVu Sans'
-matplotlib.rcParams['axes.unicode_minus'] = False
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
