@@ -283,7 +283,7 @@ def oracle_call_efficiency(oracle_history: List[Dict],
 # ── False Safe Rate ───────────────────────────────────────────────────────────
 
 def false_safe_rate(oracle_history, E_pinn_key="E_pinn", E_true_key="E_true",
-                    tau=0.05):
+                    tau=0.01):
     """
     FSR with safety dead-band tau.
 
@@ -293,7 +293,7 @@ def false_safe_rate(oracle_history, E_pinn_key="E_pinn", E_true_key="E_true",
     around the threshold and are excluded from both numerator and
     denominator — they are not genuine safety failures.
 
-    tau=0.05 matches the FEM solver tolerance near u=U_THRESHOLD.
+    tau=0.01, exceeding the measured FEM oracle discretization error (<=0.006).
     """
     true_collapse = [r for r in oracle_history if r.get(E_true_key, 0) > tau]
     if not true_collapse:

@@ -82,6 +82,13 @@ class FMDPINNTrainer:
         # Pre-compute anchor E_true from FEM once — never hardcode
         self._anchor_replay = self._build_anchor_replay()
 
+        # Fixed dense eval grid for replay E estimation — kills estimator noise
+        g = torch.rand(2048, 3, device=self.device)
+        g[:, 2] *= cfg.T_END
+        # Ensure the final time slice is well covered (E often peaks at t_end)
+        g[-512:, 2] = cfg.T_END
+        self._replay_eval_grid = g
+
     # ── Main entry point ──────────────────────────────────────────────────────
 
     def run(self) -> dict:
@@ -243,6 +250,16 @@ class FMDPINNTrainer:
         else:
             starts = self._lhs_starts(K)
 
+        # Reserve one start inside the knee box (α∈[3,6], β∈[0.5,1.5])
+        knee_start = torch.tensor([
+            np.random.uniform(3.0, 6.0),
+            np.random.uniform(0.5, 1.5),
+            np.random.uniform(cfg.D_RANGE[0], cfg.D_RANGE[1]),
+        ], device=self.device)
+        starts[0] = clamp_normalised(normalise_params(
+            knee_start[0:1], knee_start[1:2], knee_start[2:3]
+        ).squeeze(0))
+
         candidates = []
         for p_start in starts:
             p = p_start.clone().detach().requires_grad_(True)
@@ -383,17 +400,18 @@ class FMDPINNTrainer:
         from src.pinn_model import normalise_params
         from src.fem_oracle import solve_reaction_diffusion
         anchor_params = [
-            (2.0,  4.0, 0.1,   "stable"),
-            (10.0, 1.0, 0.01,  "collapse"),
-            (14.0, 0.5, 0.005, "extreme collapse"),
-            (1.5,  4.0, 0.2,   "stable2"),
-            # Near-boundary cases covering full β range
-            (4.0,  4.0, 0.007, "near_boundary_high_beta"),
-            (5.0,  2.5, 0.01,  "near_boundary_mid_beta"),
-            (6.0,  1.5, 0.01,  "near_boundary_low_beta"),
-            # High D cases to prevent D-bias
-            (8.0,  2.0, 0.1,   "collapse_high_D"),
-            (3.0,  3.0, 0.15,  "near_boundary_high_D"),
+            (2.0,  4.0,  0.1,   "stable"),
+            (10.0, 1.0,  0.01,  "collapse"),
+            (14.0, 0.5,  0.005, "extreme collapse"),
+            (1.5,  4.0,  0.2,   "stable2"),
+            (11.0, 4.0,  0.02,  "near_boundary_high_beta"),
+            (7.0,  2.0,  0.03,  "near_boundary_mid_beta"),
+            (5.0,  2.5,  0.3,   "near_boundary_high_D"),
+            # ── Knee anchors: low-β, boundary curvature highest ──
+            (3.5,  1.0,  0.02,  "knee_a"),
+            (4.5,  1.2,  0.02,  "knee_b"),
+            (5.0,  0.8,  0.03,  "knee_c"),
+            (4.0,  1.5,  0.10,  "knee_d"),
         ]
         replay = []
         for a, b, D, label in anchor_params:
@@ -402,7 +420,8 @@ class FMDPINNTrainer:
                 torch.tensor([a], device=self.device),
                 torch.tensor([b], device=self.device),
                 torch.tensor([D], device=self.device)).squeeze(0)
-            replay.append((rp, float(r["E"])))
+            knee = label.startswith("knee")
+            replay.append((rp, float(r["E"]), knee))
             print(f"  [Anchor] {label}: E_true={r['E']:+.3f}")
         return replay
 
@@ -540,23 +559,25 @@ class FMDPINNTrainer:
         
         replay = list(self._anchor_replay)  # từ FEM, tính lúc init
             
-        for rec in self.oracle_history[-10:]:
+        for rec in self.oracle_history[-30:]:
             rec_p = normalise_params(
                 torch.tensor([rec["alpha"]], device=self.device),
                 torch.tensor([rec["beta"]],  device=self.device),
                 torch.tensor([rec["D"]],     device=self.device)).squeeze(0)
-            replay.append((rec_p, float(rec["E_true"])))
+            knee = (3.0 <= rec["alpha"] <= 6.0) and (rec["beta"] < 1.5)
+            replay.append((rec_p, float(rec["E_true"]), knee))
 
         def compute_sup_loss():
             if len(replay) == 0:
                 return 0.0
-            xyt_test = torch.rand(256, 3, device=self.device)
-            xyt_test[:, 2] *= cfg.T_END
+            xyt_test = self._replay_eval_grid
             sup_loss = 0.0
             total_w  = 0.0
-            for rp, e_true in replay:
+            for rp, e_true, knee in replay:
                 e_pred = failure_functional(self.model, xyt_test, rp)
                 w = 1.0 / (abs(e_true) + 0.3)
+                if knee:
+                    w *= 2.0
                 sup_loss = sup_loss + w * (e_pred - e_true)**2
                 total_w  = total_w + w
             return sup_loss / total_w
@@ -664,8 +685,16 @@ class FMDPINNTrainer:
                 seen.add(r["oracle_call"])
                 deduped.append(r)
         self.oracle_history = deduped
-        self.phase_diagram  = deduped[:]
         last_call = int(saved["oracle_call"])
+        
+        # On resume: truncate history to the checkpoint's call count
+        if last_call > 0 and len(self.oracle_history) > last_call:
+            self.oracle_history = self.oracle_history[:last_call]
+        # On fresh start: always reset
+        if last_call == 0:
+            self.oracle_history = []
+        self.phase_diagram  = self.oracle_history[:]
+
         ckpt = os.path.join(cfg.CKPT_DIR, f"{name}_call{last_call}.pt")
         if os.path.exists(ckpt):
             try:
