@@ -33,11 +33,11 @@ import config as cfg
 # ── Hausdorff Distance ────────────────────────────────────────────────────────
 
 def hausdorff_distance(pred_pts, true_pts):
-    if len(pred_pts) == 0 or len(true_pts) == 0:
-        return np.inf
     pred_pts = np.atleast_2d(pred_pts)
     true_pts = np.atleast_2d(true_pts)
-    if pred_pts.shape[1] != 3 or true_pts.shape[1] != 3:
+    if len(pred_pts) == 0 or len(true_pts) == 0:
+        return np.inf
+    if pred_pts.shape[1] != true_pts.shape[1]:
         return np.inf
     if not (np.isfinite(pred_pts).all() and np.isfinite(true_pts).all()):
         return np.inf
