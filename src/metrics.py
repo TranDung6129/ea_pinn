@@ -33,9 +33,9 @@ import config as cfg
 # ── Hausdorff Distance ────────────────────────────────────────────────────────
 
 def hausdorff_distance(pred_pts, true_pts):
-    pred_pts = np.atleast_2d(pred_pts)
-    true_pts = np.atleast_2d(true_pts)
-    if len(pred_pts) == 0 or len(true_pts) == 0:
+    pred_pts = np.ascontiguousarray(np.atleast_2d(pred_pts), dtype=np.float64)
+    true_pts = np.ascontiguousarray(np.atleast_2d(true_pts), dtype=np.float64)
+    if pred_pts.shape[0] == 0 or true_pts.shape[0] == 0:
         return np.inf
     if pred_pts.shape[1] != true_pts.shape[1]:
         return np.inf
