@@ -1,0 +1,36 @@
+{
+  "hausdorff_mean": 1.03,
+  "hausdorff_std": 0.0,
+  "n_delta_mean": 200.0,
+  "fsr_mean": 0.0,
+  "metrics_per_seed": [
+    {
+      "fsr": 0.0,
+      "coverage_ratio": 0.96,
+      "hausdorff_final": 1.03,
+      "n_delta": 200,
+      "wall_clock_actual_s": 29.777270555496216
+    },
+    {
+      "fsr": 0.0,
+      "coverage_ratio": 0.945,
+      "hausdorff_final": 1.03,
+      "n_delta": 200,
+      "wall_clock_actual_s": 34.66028881072998
+    },
+    {
+      "fsr": 0.0,
+      "coverage_ratio": 0.955,
+      "hausdorff_final": 1.03,
+      "n_delta": 200,
+      "wall_clock_actual_s": 24.18523597717285
+    },
+    {
+      "fsr": 0.0,
+      "coverage_ratio": 0.95,
+      "hausdorff_final": 1.03,
+      "n_delta": 200,
+      "wall_clock_actual_s": 28.017353773117065
+    }
+  ]
+}

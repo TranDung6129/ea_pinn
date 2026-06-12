@@ -1,0 +1,42 @@
+{
+  "method": "vanilla_pinn",
+  "results": [
+    {
+      "config": {
+        "alpha": 2.0,
+        "beta": 4.0,
+        "D": 0.1,
+        "label": "STABLE"
+      },
+      "E_true": -1.2187113393113818,
+      "E_pred_mean": -1.4684372186660766,
+      "E_pred_std": 0.0013119021720688396,
+      "false_safe_rate": 0.0
+    },
+    {
+      "config": {
+        "alpha": 3.5,
+        "beta": 1.5,
+        "D": 0.05,
+        "label": "NEAR_BOUNDARY"
+      },
+      "E_true": -0.3990975714973004,
+      "E_pred_mean": -1.4673791170120238,
+      "E_pred_std": 0.00959844343997211,
+      "false_safe_rate": 0.0
+    },
+    {
+      "config": {
+        "alpha": 10.0,
+        "beta": 1.0,
+        "D": 0.01,
+        "label": "COLLAPSE"
+      },
+      "E_true": 1.6622724272423386,
+      "E_pred_mean": -1.4733131170272826,
+      "E_pred_std": 0.00337219330604382,
+      "false_safe_rate": 1.0
+    }
+  ],
+  "near_fsr": 0.0
+}

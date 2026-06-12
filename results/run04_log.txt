@@ -1,0 +1,1363 @@
+
+============================================================
+STEP 4: FMD-PINN + Ablation Studies
+  device=cuda  batch=8192
+============================================================
+
+Loading ground truth …
+[GT] Loading cached ground truth from C:\Users\ADMIN\ea_pinn\results\ground_truth.npz  (n_grid=15)
+
+==================================================
+Variant: A2_event_only
+==================================================
+
+  [A2_event_only]  seed=0  flags={'use_event_loss': True, 'use_adaptive_samp': False, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=42  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=False
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=8.7794e-03
+  [Warmup] step= 500/8000  loss=2.5594e-03
+  [Warmup] step=1000/8000  loss=4.6916e-03
+  [Warmup] step=1500/8000  loss=3.7969e-04
+  [Warmup] step=2000/8000  loss=4.1299e-04
+  [Warmup] step=2500/8000  loss=1.8858e-03
+  [Warmup] step=3000/8000  loss=1.6800e-04
+  [Warmup] step=3500/8000  loss=4.4870e-04
+  [Warmup] step=4000/8000  loss=9.1800e-04
+  [Warmup] step=4500/8000  loss=8.0063e-04
+  [Warmup] step=5000/8000  loss=2.3618e-03
+  [Warmup] step=5500/8000  loss=3.6842e-04
+  [Warmup] step=6000/8000  loss=7.8293e-04
+  [Warmup] step=6500/8000  loss=1.6470e-03
+  [Warmup] step=7000/8000  loss=3.8747e-03
+  [Warmup] step=7500/8000  loss=9.3101e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.249  E_true=-1.219
+    collapse: E_pinn=+1.698  E_true=+1.662
+    near-boundary: E_pinn=+0.283  E_true=+0.267
+    extreme collapse: E_pinn=+2.395  E_true=+2.167
+    stable2: E_pinn=-1.311  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed42_minmax0_ev1_as0.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=0  δ_H=0.4369  N_δ=-1  FSR=5.6%  CR=99.4%
+
+  [A2_event_only]  seed=1  flags={'use_event_loss': True, 'use_adaptive_samp': False, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=43  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=False
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=7.3717e-03
+  [Warmup] step= 500/8000  loss=8.9360e-04
+  [Warmup] step=1000/8000  loss=5.3160e-04
+  [Warmup] step=1500/8000  loss=7.2171e-04
+  [Warmup] step=2000/8000  loss=4.7013e-04
+  [Warmup] step=2500/8000  loss=7.2645e-04
+  [Warmup] step=3000/8000  loss=5.0176e-04
+  [Warmup] step=3500/8000  loss=7.6403e-04
+  [Warmup] step=4000/8000  loss=5.2323e-04
+  [Warmup] step=4500/8000  loss=1.2044e-04
+  [Warmup] step=5000/8000  loss=7.4556e-04
+  [Warmup] step=5500/8000  loss=1.4843e-03
+  [Warmup] step=6000/8000  loss=5.6268e-04
+  [Warmup] step=6500/8000  loss=1.2836e-04
+  [Warmup] step=7000/8000  loss=4.9419e-04
+  [Warmup] step=7500/8000  loss=4.1046e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.234  E_true=-1.219
+    collapse: E_pinn=+1.690  E_true=+1.662
+    near-boundary: E_pinn=+0.226  E_true=+0.267
+    extreme collapse: E_pinn=+2.145  E_true=+2.167
+    stable2: E_pinn=-1.323  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed43_minmax0_ev1_as0.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=1  δ_H=0.2271  N_δ=-1  FSR=3.8%  CR=100.0%
+
+  [A2_event_only]  seed=2  flags={'use_event_loss': True, 'use_adaptive_samp': False, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=44  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=False
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=2.3780e-03
+  [Warmup] step= 500/8000  loss=1.4903e-03
+  [Warmup] step=1000/8000  loss=6.5424e-04
+  [Warmup] step=1500/8000  loss=7.9206e-04
+  [Warmup] step=2000/8000  loss=5.9876e-04
+  [Warmup] step=2500/8000  loss=4.1590e-04
+  [Warmup] step=3000/8000  loss=3.1954e-04
+  [Warmup] step=3500/8000  loss=2.6860e-04
+  [Warmup] step=4000/8000  loss=7.3362e-04
+  [Warmup] step=4500/8000  loss=8.7391e-04
+  [Warmup] step=5000/8000  loss=5.7607e-04
+  [Warmup] step=5500/8000  loss=9.9975e-04
+  [Warmup] step=6000/8000  loss=6.5635e-04
+  [Warmup] step=6500/8000  loss=5.7156e-04
+  [Warmup] step=7000/8000  loss=1.2536e-03
+  [Warmup] step=7500/8000  loss=6.8359e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.157  E_true=-1.219
+    collapse: E_pinn=+1.742  E_true=+1.662
+    near-boundary: E_pinn=+0.394  E_true=+0.267
+    extreme collapse: E_pinn=+2.601  E_true=+2.167
+    stable2: E_pinn=-1.309  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed44_minmax0_ev1_as0.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=2  δ_H=0.6032  N_δ=-1  FSR=5.6%  CR=99.9%
+
+  [A2_event_only]  seed=3  flags={'use_event_loss': True, 'use_adaptive_samp': False, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=45  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=False
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.5556e-02
+  [Warmup] step= 500/8000  loss=1.9518e-03
+  [Warmup] step=1000/8000  loss=1.7533e-03
+  [Warmup] step=1500/8000  loss=5.5989e-04
+  [Warmup] step=2000/8000  loss=5.5180e-04
+  [Warmup] step=2500/8000  loss=1.2546e-03
+  [Warmup] step=3000/8000  loss=2.3580e-03
+  [Warmup] step=3500/8000  loss=8.3527e-04
+  [Warmup] step=4000/8000  loss=6.5626e-04
+  [Warmup] step=4500/8000  loss=1.4917e-03
+  [Warmup] step=5000/8000  loss=4.4318e-03
+  [Warmup] step=5500/8000  loss=8.2531e-04
+  [Warmup] step=6000/8000  loss=2.8327e-03
+  [Warmup] step=6500/8000  loss=1.5362e-03
+  [Warmup] step=7000/8000  loss=3.6925e-04
+  [Warmup] step=7500/8000  loss=3.0699e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.193  E_true=-1.219
+    collapse: E_pinn=+1.701  E_true=+1.662
+    near-boundary: E_pinn=+0.269  E_true=+0.267
+    extreme collapse: E_pinn=+2.428  E_true=+2.167
+    stable2: E_pinn=-1.285  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed45_minmax0_ev1_as0.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=3  δ_H=0.5136  N_δ=-1  FSR=7.1%  CR=99.5%
+
+  [A2_event_only]  seed=4  flags={'use_event_loss': True, 'use_adaptive_samp': False, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=46  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=False
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.4307e-02
+  [Warmup] step= 500/8000  loss=2.5531e-03
+  [Warmup] step=1000/8000  loss=1.9130e-03
+  [Warmup] step=1500/8000  loss=1.3822e-03
+  [Warmup] step=2000/8000  loss=4.6582e-04
+  [Warmup] step=2500/8000  loss=4.2974e-04
+  [Warmup] step=3000/8000  loss=2.7979e-04
+  [Warmup] step=3500/8000  loss=2.3519e-03
+  [Warmup] step=4000/8000  loss=1.5625e-03
+  [Warmup] step=4500/8000  loss=1.0426e-03
+  [Warmup] step=5000/8000  loss=3.0447e-04
+  [Warmup] step=5500/8000  loss=1.3548e-03
+  [Warmup] step=6000/8000  loss=8.5894e-04
+  [Warmup] step=6500/8000  loss=2.8754e-04
+  [Warmup] step=7000/8000  loss=1.2271e-04
+  [Warmup] step=7500/8000  loss=5.1839e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.197  E_true=-1.219
+    collapse: E_pinn=+1.755  E_true=+1.662
+    near-boundary: E_pinn=+0.339  E_true=+0.267
+    extreme collapse: E_pinn=+2.512  E_true=+2.167
+    stable2: E_pinn=-1.247  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed46_minmax0_ev1_as0.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=4  δ_H=0.5417  N_δ=-1  FSR=7.2%  CR=99.9%
+
+==================================================
+Variant: A3_adaptive_only
+==================================================
+
+  [A3_adaptive_only]  seed=0  flags={'use_event_loss': False, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=42  device=cuda
+  min_max=False  event_loss=False  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=4.2935e-03
+  [Warmup] step= 500/8000  loss=1.3692e-03
+  [Warmup] step=1000/8000  loss=2.5123e-03
+  [Warmup] step=1500/8000  loss=8.3109e-04
+  [Warmup] step=2000/8000  loss=4.2440e-04
+  [Warmup] step=2500/8000  loss=1.2853e-03
+  [Warmup] step=3000/8000  loss=1.9727e-04
+  [Warmup] step=3500/8000  loss=8.2160e-04
+  [Warmup] step=4000/8000  loss=7.8685e-04
+  [Warmup] step=4500/8000  loss=3.3297e-04
+  [Warmup] step=5000/8000  loss=1.0432e-03
+  [Warmup] step=5500/8000  loss=2.3409e-04
+  [Warmup] step=6000/8000  loss=4.7670e-04
+  [Warmup] step=6500/8000  loss=4.2689e-04
+  [Warmup] step=7000/8000  loss=1.2802e-03
+  [Warmup] step=7500/8000  loss=6.8644e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.262  E_true=-1.219
+    collapse: E_pinn=+1.760  E_true=+1.662
+    near-boundary: E_pinn=+0.249  E_true=+0.267
+    extreme collapse: E_pinn=+2.677  E_true=+2.167
+    stable2: E_pinn=-1.331  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed42_minmax0_ev0_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=0  δ_H=0.5136  N_δ=160  FSR=6.2%  CR=99.8%
+
+  [A3_adaptive_only]  seed=1  flags={'use_event_loss': False, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=43  device=cuda
+  min_max=False  event_loss=False  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.3118e-02
+  [Warmup] step= 500/8000  loss=1.1656e-03
+  [Warmup] step=1000/8000  loss=3.3445e-04
+  [Warmup] step=1500/8000  loss=2.4001e-04
+  [Warmup] step=2000/8000  loss=3.2527e-04
+  [Warmup] step=2500/8000  loss=8.9963e-04
+  [Warmup] step=3000/8000  loss=3.8460e-04
+  [Warmup] step=3500/8000  loss=1.6631e-03
+  [Warmup] step=4000/8000  loss=8.1212e-04
+  [Warmup] step=4500/8000  loss=1.6365e-04
+  [Warmup] step=5000/8000  loss=1.4221e-03
+  [Warmup] step=5500/8000  loss=1.8804e-03
+  [Warmup] step=6000/8000  loss=1.1776e-04
+  [Warmup] step=6500/8000  loss=8.7285e-05
+  [Warmup] step=7000/8000  loss=2.8804e-04
+  [Warmup] step=7500/8000  loss=1.1338e-03
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.253  E_true=-1.219
+    collapse: E_pinn=+1.744  E_true=+1.662
+    near-boundary: E_pinn=+0.239  E_true=+0.267
+    extreme collapse: E_pinn=+2.381  E_true=+2.167
+    stable2: E_pinn=-1.318  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed43_minmax0_ev0_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=1  δ_H=0.4393  N_δ=-1  FSR=3.4%  CR=100.0%
+
+  [A3_adaptive_only]  seed=2  flags={'use_event_loss': False, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=44  device=cuda
+  min_max=False  event_loss=False  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=3.9638e-03
+  [Warmup] step= 500/8000  loss=9.6229e-04
+  [Warmup] step=1000/8000  loss=2.8870e-03
+  [Warmup] step=1500/8000  loss=2.1775e-04
+  [Warmup] step=2000/8000  loss=5.8950e-04
+  [Warmup] step=2500/8000  loss=1.7219e-04
+  [Warmup] step=3000/8000  loss=2.0445e-03
+  [Warmup] step=3500/8000  loss=2.7214e-04
+  [Warmup] step=4000/8000  loss=3.4559e-04
+  [Warmup] step=4500/8000  loss=5.8021e-04
+  [Warmup] step=5000/8000  loss=2.1060e-04
+  [Warmup] step=5500/8000  loss=2.4846e-04
+  [Warmup] step=6000/8000  loss=5.5370e-04
+  [Warmup] step=6500/8000  loss=3.8667e-04
+  [Warmup] step=7000/8000  loss=5.2330e-04
+  [Warmup] step=7500/8000  loss=6.1965e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.131  E_true=-1.219
+    collapse: E_pinn=+1.809  E_true=+1.662
+    near-boundary: E_pinn=+0.389  E_true=+0.267
+    extreme collapse: E_pinn=+2.299  E_true=+2.167
+    stable2: E_pinn=-1.207  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed44_minmax0_ev0_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=2  δ_H=0.6032  N_δ=-1  FSR=7.5%  CR=100.0%
+
+  [A3_adaptive_only]  seed=3  flags={'use_event_loss': False, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=45  device=cuda
+  min_max=False  event_loss=False  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=nan
+  [Warmup] step= 500/8000  loss=nan
+  [Warmup] step=1000/8000  loss=nan
+  [Warmup] step=1500/8000  loss=nan
+  [Warmup] step=2000/8000  loss=nan
+  [Warmup] step=2500/8000  loss=nan
+  [Warmup] step=3000/8000  loss=nan
+  [Warmup] step=3500/8000  loss=nan
+  [Warmup] step=4000/8000  loss=nan
+  [Warmup] step=4500/8000  loss=nan
+  [Warmup] step=5000/8000  loss=nan
+  [Warmup] step=5500/8000  loss=nan
+  [Warmup] step=6000/8000  loss=nan
+  [Warmup] step=6500/8000  loss=nan
+  [Warmup] step=7000/8000  loss=nan
+  [Warmup] step=7500/8000  loss=nan
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=+nan  E_true=-1.219
+    collapse: E_pinn=+nan  E_true=+1.662
+    near-boundary: E_pinn=+nan  E_true=+0.267
+    extreme collapse: E_pinn=+nan  E_true=+2.167
+    stable2: E_pinn=+nan  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed45_minmax0_ev0_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=3  δ_H=inf  N_δ=-1  FSR=0.9%  CR=0.0%
+
+  [A3_adaptive_only]  seed=4  flags={'use_event_loss': False, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=46  device=cuda
+  min_max=False  event_loss=False  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=8.9666e-03
+  [Warmup] step= 500/8000  loss=4.9283e-03
+  [Warmup] step=1000/8000  loss=7.9099e-04
+  [Warmup] step=1500/8000  loss=1.2914e-03
+  [Warmup] step=2000/8000  loss=7.9866e-04
+  [Warmup] step=2500/8000  loss=4.3740e-04
+  [Warmup] step=3000/8000  loss=2.6971e-04
+  [Warmup] step=3500/8000  loss=4.3214e-03
+  [Warmup] step=4000/8000  loss=1.6429e-03
+  [Warmup] step=4500/8000  loss=1.7075e-03
+  [Warmup] step=5000/8000  loss=1.2838e-03
+  [Warmup] step=5500/8000  loss=2.5225e-03
+  [Warmup] step=6000/8000  loss=1.1876e-03
+  [Warmup] step=6500/8000  loss=1.1789e-03
+  [Warmup] step=7000/8000  loss=1.2838e-04
+  [Warmup] step=7500/8000  loss=3.5206e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.282  E_true=-1.219
+    collapse: E_pinn=+1.708  E_true=+1.662
+    near-boundary: E_pinn=+0.183  E_true=+0.267
+    extreme collapse: E_pinn=+2.156  E_true=+2.167
+    stable2: E_pinn=-1.323  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed46_minmax0_ev0_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=4  δ_H=0.3314  N_δ=-1  FSR=3.6%  CR=99.9%
+
+==================================================
+Variant: A4_no_minmax
+==================================================
+
+  [A4_no_minmax]  seed=0  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=42  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=7.4393e-03
+  [Warmup] step= 500/8000  loss=2.9907e-03
+  [Warmup] step=1000/8000  loss=2.3392e-03
+  [Warmup] step=1500/8000  loss=2.0144e-03
+  [Warmup] step=2000/8000  loss=5.0398e-04
+  [Warmup] step=2500/8000  loss=1.0224e-03
+  [Warmup] step=3000/8000  loss=9.3685e-04
+  [Warmup] step=3500/8000  loss=7.2812e-04
+  [Warmup] step=4000/8000  loss=1.0632e-03
+  [Warmup] step=4500/8000  loss=4.5115e-04
+  [Warmup] step=5000/8000  loss=1.0166e-03
+  [Warmup] step=5500/8000  loss=4.3134e-04
+  [Warmup] step=6000/8000  loss=5.2148e-04
+  [Warmup] step=6500/8000  loss=1.6066e-03
+  [Warmup] step=7000/8000  loss=1.3743e-03
+  [Warmup] step=7500/8000  loss=2.2675e-03
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.233  E_true=-1.219
+    collapse: E_pinn=+1.738  E_true=+1.662
+    near-boundary: E_pinn=+0.277  E_true=+0.267
+    extreme collapse: E_pinn=+2.709  E_true=+2.167
+    stable2: E_pinn=-1.316  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed42_minmax0_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=0  δ_H=0.5417  N_δ=-1  FSR=4.4%  CR=100.0%
+
+  [A4_no_minmax]  seed=1  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=43  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.3739e-02
+  [Warmup] step= 500/8000  loss=8.2033e-04
+  [Warmup] step=1000/8000  loss=6.7795e-04
+  [Warmup] step=1500/8000  loss=4.9536e-04
+  [Warmup] step=2000/8000  loss=1.2673e-03
+  [Warmup] step=2500/8000  loss=3.3653e-04
+  [Warmup] step=3000/8000  loss=1.2748e-03
+  [Warmup] step=3500/8000  loss=3.2593e-03
+  [Warmup] step=4000/8000  loss=1.0476e-03
+  [Warmup] step=4500/8000  loss=1.2301e-04
+  [Warmup] step=5000/8000  loss=1.6758e-03
+  [Warmup] step=5500/8000  loss=1.7559e-03
+  [Warmup] step=6000/8000  loss=3.5806e-04
+  [Warmup] step=6500/8000  loss=1.1215e-04
+  [Warmup] step=7000/8000  loss=7.2890e-04
+  [Warmup] step=7500/8000  loss=4.2127e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.236  E_true=-1.219
+    collapse: E_pinn=+1.787  E_true=+1.662
+    near-boundary: E_pinn=+0.257  E_true=+0.267
+    extreme collapse: E_pinn=+2.561  E_true=+2.167
+    stable2: E_pinn=-1.276  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed43_minmax0_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=1  δ_H=0.4365  N_δ=-1  FSR=2.8%  CR=100.0%
+
+  [A4_no_minmax]  seed=2  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=44  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=2.4005e-03
+  [Warmup] step= 500/8000  loss=3.0646e-03
+  [Warmup] step=1000/8000  loss=5.6048e-04
+  [Warmup] step=1500/8000  loss=5.3799e-04
+  [Warmup] step=2000/8000  loss=7.0673e-04
+  [Warmup] step=2500/8000  loss=2.9825e-04
+  [Warmup] step=3000/8000  loss=2.9177e-04
+  [Warmup] step=3500/8000  loss=2.7219e-04
+  [Warmup] step=4000/8000  loss=3.0735e-04
+  [Warmup] step=4500/8000  loss=5.9506e-04
+  [Warmup] step=5000/8000  loss=2.3663e-03
+  [Warmup] step=5500/8000  loss=8.7102e-04
+  [Warmup] step=6000/8000  loss=1.9419e-04
+  [Warmup] step=6500/8000  loss=6.9025e-04
+  [Warmup] step=7000/8000  loss=1.3313e-03
+  [Warmup] step=7500/8000  loss=7.0091e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.278  E_true=-1.219
+    collapse: E_pinn=+1.736  E_true=+1.662
+    near-boundary: E_pinn=+0.346  E_true=+0.267
+    extreme collapse: E_pinn=+2.730  E_true=+2.167
+    stable2: E_pinn=-1.350  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed44_minmax0_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=2  δ_H=0.4367  N_δ=-1  FSR=4.3%  CR=100.0%
+
+  [A4_no_minmax]  seed=3  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=45  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.5556e-02
+  [Warmup] step= 500/8000  loss=1.9518e-03
+  [Warmup] step=1000/8000  loss=1.7533e-03
+  [Warmup] step=1500/8000  loss=5.5989e-04
+  [Warmup] step=2000/8000  loss=5.5180e-04
+  [Warmup] step=2500/8000  loss=1.2546e-03
+  [Warmup] step=3000/8000  loss=2.3580e-03
+  [Warmup] step=3500/8000  loss=8.3527e-04
+  [Warmup] step=4000/8000  loss=6.5626e-04
+  [Warmup] step=4500/8000  loss=1.4917e-03
+  [Warmup] step=5000/8000  loss=4.4318e-03
+  [Warmup] step=5500/8000  loss=8.2531e-04
+  [Warmup] step=6000/8000  loss=2.8327e-03
+  [Warmup] step=6500/8000  loss=1.5362e-03
+  [Warmup] step=7000/8000  loss=3.6925e-04
+  [Warmup] step=7500/8000  loss=3.0699e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.193  E_true=-1.219
+    collapse: E_pinn=+1.701  E_true=+1.662
+    near-boundary: E_pinn=+0.269  E_true=+0.267
+    extreme collapse: E_pinn=+2.428  E_true=+2.167
+    stable2: E_pinn=-1.285  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed45_minmax0_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=3  δ_H=0.5136  N_δ=-1  FSR=7.1%  CR=99.5%
+
+  [A4_no_minmax]  seed=4  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': False}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=46  device=cuda
+  min_max=False  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.4307e-02
+  [Warmup] step= 500/8000  loss=2.5531e-03
+  [Warmup] step=1000/8000  loss=1.9130e-03
+  [Warmup] step=1500/8000  loss=1.3822e-03
+  [Warmup] step=2000/8000  loss=4.6582e-04
+  [Warmup] step=2500/8000  loss=4.2974e-04
+  [Warmup] step=3000/8000  loss=2.7979e-04
+  [Warmup] step=3500/8000  loss=2.3519e-03
+  [Warmup] step=4000/8000  loss=1.5625e-03
+  [Warmup] step=4500/8000  loss=1.0426e-03
+  [Warmup] step=5000/8000  loss=3.0447e-04
+  [Warmup] step=5500/8000  loss=1.3548e-03
+  [Warmup] step=6000/8000  loss=8.5894e-04
+  [Warmup] step=6500/8000  loss=2.8754e-04
+  [Warmup] step=7000/8000  loss=1.2271e-04
+  [Warmup] step=7500/8000  loss=5.1839e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.197  E_true=-1.219
+    collapse: E_pinn=+1.755  E_true=+1.662
+    near-boundary: E_pinn=+0.339  E_true=+0.267
+    extreme collapse: E_pinn=+2.512  E_true=+2.167
+    stable2: E_pinn=-1.247  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed46_minmax0_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=4  δ_H=0.5417  N_δ=-1  FSR=7.2%  CR=99.9%
+
+==================================================
+Variant: A5_full_fmd
+==================================================
+
+  [A5_full_fmd]  seed=0  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': True}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=42  device=cuda
+  min_max=True  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=5.2104e-03
+  [Warmup] step= 500/8000  loss=9.3514e-04
+  [Warmup] step=1000/8000  loss=7.5574e-03
+  [Warmup] step=1500/8000  loss=6.0815e-04
+  [Warmup] step=2000/8000  loss=1.0178e-03
+  [Warmup] step=2500/8000  loss=7.2975e-03
+  [Warmup] step=3000/8000  loss=6.4847e-04
+  [Warmup] step=3500/8000  loss=2.1768e-03
+  [Warmup] step=4000/8000  loss=1.1246e-03
+  [Warmup] step=4500/8000  loss=1.0074e-03
+  [Warmup] step=5000/8000  loss=3.0835e-03
+  [Warmup] step=5500/8000  loss=3.2803e-04
+  [Warmup] step=6000/8000  loss=1.1253e-03
+  [Warmup] step=6500/8000  loss=7.4528e-04
+  [Warmup] step=7000/8000  loss=6.8618e-04
+  [Warmup] step=7500/8000  loss=1.4271e-03
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.230  E_true=-1.219
+    collapse: E_pinn=+1.737  E_true=+1.662
+    near-boundary: E_pinn=+0.315  E_true=+0.267
+    extreme collapse: E_pinn=+1.979  E_true=+2.167
+    stable2: E_pinn=-1.286  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed42_minmax1_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=0  δ_H=0.4879  N_δ=-1  FSR=1.5%  CR=84.4%
+
+  [A5_full_fmd]  seed=1  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': True}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=43  device=cuda
+  min_max=True  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.9980e-02
+  [Warmup] step= 500/8000  loss=1.0240e-03
+  [Warmup] step=1000/8000  loss=4.1045e-03
+  [Warmup] step=1500/8000  loss=5.9091e-04
+  [Warmup] step=2000/8000  loss=1.0498e-03
+  [Warmup] step=2500/8000  loss=8.5944e-04
+  [Warmup] step=3000/8000  loss=1.4278e-03
+  [Warmup] step=3500/8000  loss=1.3059e-03
+  [Warmup] step=4000/8000  loss=3.0566e-04
+  [Warmup] step=4500/8000  loss=7.7452e-04
+  [Warmup] step=5000/8000  loss=6.8937e-04
+  [Warmup] step=5500/8000  loss=2.8350e-04
+  [Warmup] step=6000/8000  loss=3.0668e-04
+  [Warmup] step=6500/8000  loss=2.4215e-04
+  [Warmup] step=7000/8000  loss=2.1783e-03
+  [Warmup] step=7500/8000  loss=1.0928e-03
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.237  E_true=-1.219
+    collapse: E_pinn=+1.735  E_true=+1.662
+    near-boundary: E_pinn=+0.269  E_true=+0.267
+    extreme collapse: E_pinn=+2.425  E_true=+2.167
+    stable2: E_pinn=-1.287  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed43_minmax1_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=1  δ_H=0.3302  N_δ=-1  FSR=0.5%  CR=89.7%
+
+  [A5_full_fmd]  seed=2  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': True}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=44  device=cuda
+  min_max=True  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=6.1006e-02
+  [Warmup] step= 500/8000  loss=9.5437e-04
+  [Warmup] step=1000/8000  loss=4.2383e-04
+  [Warmup] step=1500/8000  loss=1.1010e-03
+  [Warmup] step=2000/8000  loss=6.5719e-04
+  [Warmup] step=2500/8000  loss=4.2215e-04
+  [Warmup] step=3000/8000  loss=4.9706e-04
+  [Warmup] step=3500/8000  loss=1.0931e-03
+  [Warmup] step=4000/8000  loss=1.1121e-03
+  [Warmup] step=4500/8000  loss=3.3924e-03
+  [Warmup] step=5000/8000  loss=2.7968e-03
+  [Warmup] step=5500/8000  loss=3.5157e-04
+  [Warmup] step=6000/8000  loss=1.0161e-03
+  [Warmup] step=6500/8000  loss=2.0889e-03
+  [Warmup] step=7000/8000  loss=4.6839e-04
+  [Warmup] step=7500/8000  loss=1.7652e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.229  E_true=-1.219
+    collapse: E_pinn=+1.715  E_true=+1.662
+    near-boundary: E_pinn=+0.280  E_true=+0.267
+    extreme collapse: E_pinn=+2.237  E_true=+2.167
+    stable2: E_pinn=-1.259  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed44_minmax1_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=2  δ_H=0.4193  N_δ=-1  FSR=2.5%  CR=78.2%
+
+  [A5_full_fmd]  seed=3  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': True}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=45  device=cuda
+  min_max=True  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=2.2322e-02
+  [Warmup] step= 500/8000  loss=6.8939e-04
+  [Warmup] step=1000/8000  loss=3.2196e-03
+  [Warmup] step=1500/8000  loss=7.4139e-03
+  [Warmup] step=2000/8000  loss=1.2331e-03
+  [Warmup] step=2500/8000  loss=2.9738e-03
+  [Warmup] step=3000/8000  loss=1.2793e-02
+  [Warmup] step=3500/8000  loss=1.0443e-03
+  [Warmup] step=4000/8000  loss=1.0167e-03
+  [Warmup] step=4500/8000  loss=3.2593e-04
+  [Warmup] step=5000/8000  loss=7.4679e-03
+  [Warmup] step=5500/8000  loss=5.2384e-04
+  [Warmup] step=6000/8000  loss=6.0490e-03
+  [Warmup] step=6500/8000  loss=2.0282e-03
+  [Warmup] step=7000/8000  loss=2.5200e-04
+  [Warmup] step=7500/8000  loss=6.1496e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.223  E_true=-1.219
+    collapse: E_pinn=+1.755  E_true=+1.662
+    near-boundary: E_pinn=+0.273  E_true=+0.267
+    extreme collapse: E_pinn=+1.985  E_true=+2.167
+    stable2: E_pinn=-1.285  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed45_minmax1_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=3  δ_H=0.3506  N_δ=-1  FSR=1.1%  CR=90.1%
+
+  [A5_full_fmd]  seed=4  flags={'use_event_loss': True, 'use_adaptive_samp': True, 'use_min_max': True}
+[PINN] Parameters: 16,897  device=cuda
+[RESUME] Loaded call=200, history=200 records
+
+============================================================
+FMD-PINN  seed=46  device=cuda
+  min_max=True  event_loss=True  adaptive_samp=True
+  oracle_budget=200
+============================================================
+
+[Phase 0] Warm-up training on random parameter samples …
+  [Warmup] Collecting FEM data for pretraining...
+    stable: E=-1.219
+    collapse: E=+1.662
+    near-boundary: E=+0.267
+    extreme collapse: E=+2.167
+    stable2: E=-1.326
+  [Warmup] step=   0/8000  loss=1.5438e-02
+  [Warmup] step= 500/8000  loss=2.6530e-03
+  [Warmup] step=1000/8000  loss=9.3263e-04
+  [Warmup] step=1500/8000  loss=1.0538e-03
+  [Warmup] step=2000/8000  loss=8.1121e-04
+  [Warmup] step=2500/8000  loss=5.9688e-04
+  [Warmup] step=3000/8000  loss=6.0830e-04
+  [Warmup] step=3500/8000  loss=3.6251e-03
+  [Warmup] step=4000/8000  loss=2.3888e-03
+  [Warmup] step=4500/8000  loss=3.3993e-03
+  [Warmup] step=5000/8000  loss=1.8503e-03
+  [Warmup] step=5500/8000  loss=1.7242e-03
+  [Warmup] step=6000/8000  loss=1.0386e-03
+  [Warmup] step=6500/8000  loss=4.8027e-04
+  [Warmup] step=7000/8000  loss=2.9763e-04
+  [Warmup] step=7500/8000  loss=6.6660e-04
+  [Warmup] Post-pretrain E_pinn check:
+    stable: E_pinn=-1.136  E_true=-1.219
+    collapse: E_pinn=+1.806  E_true=+1.662
+    near-boundary: E_pinn=+0.349  E_true=+0.267
+    extreme collapse: E_pinn=+2.480  E_true=+2.167
+    stable2: E_pinn=-1.268  E_true=-1.326
+[RESUME] Continuing from oracle call 200
+Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]Oracle calls: 100%|██████████| 200/200 [00:00<?, ?it/s]
+
+✓ Results saved: C:\Users\ADMIN\ea_pinn\results\fmd_pinn_seed46_minmax1_ev1_as1.json
+  [metrics] Computing PINN-based δ_H at 20 checkpoints (calls: [10, 20, 30, 40, 50]...)
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+[PINN] Parameters: 16,897  device=cuda
+  seed=4  δ_H=0.4920  N_δ=-1  FSR=1.0%  CR=83.0%
+C:\Users\ADMIN\pinn_venv_new\lib\site-packages\numpy\core\_methods.py:173: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+
+
+======================================================================
+ABLATION STUDY RESULTS
+
+======================================================================
+Method                         δ_H    N_δ     FSR      CR    W(h)
+----------------------------------------------------------------------
+A2_event_only               0.4645   None    5.9%   99.8%    0.00
+A3_adaptive_only               inf  160.0    4.3%   80.0%    0.00
+A4_no_minmax                0.4940   None    5.2%   99.9%    0.00
+A5_full_fmd                 0.4160   None    1.3%   85.1%    0.00
+======================================================================
+
+✓ CHECKPOINT CP4:  FMD-PINN δ_H (PINN-based) = 0.4160
+  → Saved C:\Users\ADMIN\ea_pinn\results\oracle_efficiency.png
+  → Saved C:\Users\ADMIN\ea_pinn\results\fsr_curves.png

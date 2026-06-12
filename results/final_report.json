@@ -1,0 +1,45 @@
+{
+  "benchmark": "Benchmark 1: 2D Reaction-Diffusion",
+  "methods": {
+    "BO+FEM": {
+      "hausdorff_final": 1.2533969542899097,
+      "n_delta": 200.0,
+      "fsr": 0.0,
+      "coverage_ratio": 0.9524999999999999,
+      "wall_clock": {
+        "t_total_h": 0.008100010355313618
+      }
+    },
+    "FMD-PINN (full)": {
+      "hausdorff_final": 0.18156039522607118,
+      "n_delta": null,
+      "fsr": 0.10150141191504929,
+      "coverage_ratio": 0.9885311871227364,
+      "wall_clock": {
+        "t_total_h": 0
+      }
+    },
+    "Vanilla PINN": {
+      "hausdorff_final": null,
+      "n_delta": null,
+      "fsr": 0.0,
+      "coverage_ratio": 0.0,
+      "wall_clock": {
+        "t_total_h": 0
+      }
+    }
+  },
+  "main_claim": {
+    "fmd_n_delta": null,
+    "bo_n_delta": 200.0,
+    "speedup": null,
+    "fmd_fsr": 0.10150141191504929,
+    "claim_verified": false
+  },
+  "figures": [
+    "phase_diagram_slices.png",
+    "oracle_efficiency.png",
+    "fsr_curves.png",
+    "field_*.png"
+  ]
+}

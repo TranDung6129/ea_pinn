@@ -1,0 +1,9 @@
+{
+  "A5_full_fmd": {
+    "hausdorff_mean": 0.18156039522607118,
+    "hausdorff_std": 0.007119752974165765,
+    "n_delta_mean": null,
+    "fsr_mean": 0.10150141191504929,
+    "cr_mean": 0.9885311871227364
+  }
+}
