@@ -31,9 +31,9 @@ ABLATION_VARIANTS = {
 }
 
 
-def run_variant(name: str, flags: dict, seed: int, gt: dict):
+def run_variant(name: str, flags: dict, seed: int, gt: dict, force_restart: bool = False):
     out = os.path.join(cfg.RESULTS_DIR, f"{name}_seed{seed}_metrics.json")
-    if os.path.exists(out):
+    if os.path.exists(out) and not force_restart:
         print(f"  [{name}]  seed={seed}  → metrics cached, loading.")
         with open(out) as f:
             return json.load(f), None, None
@@ -44,7 +44,7 @@ def run_variant(name: str, flags: dict, seed: int, gt: dict):
               f"_ev{int(flags.get('use_event_loss', True))}"
               f"_as{int(flags.get('use_adaptive_samp', True))}")
     hist_file = os.path.join(cfg.RESULTS_DIR, f"fmd_pinn_seed{phys}_{suffix}.json")
-    if os.path.exists(hist_file):
+    if os.path.exists(hist_file) and not force_restart:
         print(f"  [{name}]  seed={seed}  → history found, recomputing metrics (no retrain).")
         with open(hist_file) as f:
             results = json.load(f)
@@ -64,7 +64,8 @@ def run_variant(name: str, flags: dict, seed: int, gt: dict):
     t0 = time.time()
 
     trainer = FMDPINNTrainer(seed=phys, **flags)
-    trainer.load_checkpoint()   # resume from checkpoint if available
+    if not force_restart:
+        trainer.load_checkpoint()   # resume from checkpoint if available
     results = trainer.run()
 
     dt = time.time() - t0
@@ -99,6 +100,7 @@ def main():
                         choices=list(ABLATION_VARIANTS.keys()) + ["all"])
     parser.add_argument("--seeds",   type=int, default=cfg.N_SEEDS)
     parser.add_argument("--quick",   action="store_true")
+    parser.add_argument("--force-restart", action="store_true", help="Do not resume, train from scratch")
     args = parser.parse_args()
 
     print("\n" + "="*60)
@@ -126,7 +128,7 @@ def main():
         print(f"\n{'='*50}\nVariant: {var_name}\n{'='*50}")
         seed_metrics = []
         for seed in range(args.seeds):
-            m, results, model = run_variant(var_name, flags, seed, gt)
+            m, results, model = run_variant(var_name, flags, seed, gt, force_restart=args.force_restart)
             seed_metrics.append(m)
             print(f"  seed={seed}  δ_H={m['hausdorff_final']:.4f}  "
                   f"N_δ={m['n_delta']}  FSR={m['fsr']*100:.1f}%  "
