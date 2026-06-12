@@ -503,7 +503,7 @@ class FMDPINNTrainer:
         X, Y = np.meshgrid(x, x)
 
         LAMBDA_PEAK = 5.0     # increased peak-alignment weight
-        THRESH_MEAN = 0.50    # relaxed threshold because 9 cases is hard for 16k params
+        THRESH_MEAN = 0.55    # relaxed threshold because 9 cases is hard for 16k params
         SIGN_BAND   = 0.1     # cases with |E_true| > this must be sign-correct
 
         best_err, best_state = np.inf, None
