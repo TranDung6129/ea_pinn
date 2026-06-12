@@ -172,11 +172,8 @@ class FMDPINNTrainer:
                     if fsr > cfg.FSR_ALERT_THRESH:
                         self._emergency_retrain(p_candidate, penalty=10.0)
 
-            # Fine-tune PINN with oracle result
-            self._finetune(p_candidate, E_true)
-
-            # Inner training step
-            self._inner_train(p_candidate, n_steps=500)
+            # Inner training step (supervision via replay handles finetune)
+            self._inner_train(p_candidate, n_steps=200)
 
             # Update sampler
             self.sampler.update(self.model, p_candidate)
@@ -600,7 +597,7 @@ class FMDPINNTrainer:
             loss = ldict["total"]
             sup_loss = compute_sup_loss()
             if isinstance(sup_loss, torch.Tensor):
-                loss = loss + 5.0 * sup_loss
+                loss = loss + 50.0 * sup_loss
                 
             self.adam.zero_grad()
             loss.backward()
@@ -621,7 +618,7 @@ class FMDPINNTrainer:
             loss = ld["total"]
             sup_loss = compute_sup_loss()
             if isinstance(sup_loss, torch.Tensor):
-                loss = loss + 5.0 * sup_loss
+                loss = loss + 50.0 * sup_loss
                 
             loss.backward()
             return loss
