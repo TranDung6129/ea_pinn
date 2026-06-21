@@ -9,7 +9,10 @@ E(u) = max_{x,t} u(x,y,t) − u_threshold   (blow-up indicator)
 import os
 
 if hasattr(os, "add_dll_directory"):
-    os.add_dll_directory(r"C:\Users\ADMIN\pinn_venv_new\Library\bin")
+    _lib_bin = r"pinn_venv_new\library\bin"
+    os.environ["PATH"] = os.pathsep.join(
+        p for p in os.environ.get("PATH", "").split(os.pathsep)
+        if p and _lib_bin not in p.lower().replace("/", "\\"))
     os.add_dll_directory(r'C:\Users\ADMIN\pinn_venv_new\Lib\site-packages\torch\lib')
 
 import torch
