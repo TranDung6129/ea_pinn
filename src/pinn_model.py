@@ -60,17 +60,23 @@ def clamp_normalised(p_hat: torch.Tensor, eps: float = 1e-4) -> torch.Tensor:
 
 class FourierEmbedding(nn.Module):
     """
-    Random Fourier Features for (x, y, t).
-    φ(v) = [sin(2π B v), cos(2π B v)],  B ∈ ℝ^{n_fourier × 3}  fixed.
-    Output dim: 2 · n_fourier
+    Random Fourier Features cho (x, y, t).
+    φ(v) = [sin(2π B v), cos(2π B v)],  B ∈ R^{n_fourier x 3}  cố định.
+    Output dim: 2 * n_fourier
+
+    n_fourier và scale đọc từ cfg TRONG thân hàm, không đặt làm giá trị mặc
+    định của tham số: giá trị mặc định bị đóng băng ngay lúc import module,
+    nên mọi thay đổi cfg.N_FOURIER sau đó sẽ im lặng không có tác dụng.
     """
-    def __init__(self, n_fourier: int = cfg.N_FOURIER,
-                 scale: float = cfg.FOURIER_SCALE, seed: int = 0):
+    def __init__(self, n_fourier: int = None, scale: float = None,
+                 seed: int = 0):
         super().__init__()
+        n_fourier = cfg.N_FOURIER if n_fourier is None else n_fourier
+        scale = cfg.FOURIER_SCALE if scale is None else scale
         rng = torch.Generator()
         rng.manual_seed(seed)
         B = torch.randn(n_fourier, 3, generator=rng) * scale
-        self.register_buffer("B", B)          # frozen
+        self.register_buffer("B", B)          # đóng băng
         self.out_dim = 2 * n_fourier
 
     def forward(self, xyt: torch.Tensor) -> torch.Tensor:
