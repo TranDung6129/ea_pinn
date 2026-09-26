@@ -139,6 +139,10 @@ DELTA_TARGET = 0.080
 # biện sẽ nhắm vào trước tiên.
 DELTA_SWEEP  = [0.06, 0.07, 0.08, 0.10, 0.12]
 
+# ── Hiệu chỉnh mức khi chọn điểm oracle ─────────────────────────────────────
+LEVEL_CORRECT = False   # chọn điểm oracle trên E_pinn + b, b = lệch mức khớp trên lịch sử
+LEVEL_BAND    = 0.3     # dải |E_true| dùng để khớp b
+
 # ── Phép thử ngoại suy ───────────────────────────────────────────────────────
 # Giới hạn LỜI GỌI ORACLE vào một hộp con của không gian tham số, theo toạ độ
 # chuẩn hoá [0,1] trên từng trục (alpha, beta tuyến tính; D theo thang log).
@@ -180,6 +184,8 @@ N_COLLOCATION = N_PARAM_BATCH * N_COLL_PER_P
 ADAM_EPOCHS   = INIT_STEPS
 LBFGS_STEPS   = 0        # đã bỏ L-BFGS khỏi vòng trong
 FSR_ALERT_THRESH = 0.05
+PROJECT_ITERS    = 3      # số bước Newton kéo điểm đề xuất về tập mức không (0 = tắt)
+PROJECT_MAX_STEP = 0.05   # trần mỗi bước, theo toạ độ chuẩn hoá
 
 print(f"[config] device={DEVICE}  param_batch={N_PARAM_BATCH}  "
       f"oracle_budget={ORACLE_BUDGET}")

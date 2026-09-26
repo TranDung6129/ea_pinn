@@ -247,6 +247,23 @@ class FMDPINNTrainer:
                          device=self.device, dtype=torch.float32)
         return normalise_params(a, b, d)
 
+    def _level_offset(self) -> float:
+        """Lệch mức b = trung bình (E_true − E_pinn) trên các lời gọi sát biên.
+        PINN nắm đúng hình dạng nhưng trôi về mức; b kéo tập mức không về đúng
+        chỗ trước khi chọn điểm gọi oracle. Không đổi huấn luyện, không đổi ∇E."""
+        if not getattr(cfg, "LEVEL_CORRECT", False) or len(self.oracle_history) < 5:
+            return 0.0
+        E_true = torch.tensor([r["E_true"] for r in self.oracle_history],
+                              device=self.device, dtype=torch.float32)
+        near = E_true.abs() < getattr(cfg, "LEVEL_BAND", 0.3)
+        if near.sum() < 3:
+            return 0.0
+        self.model.eval()
+        with torch.no_grad():
+            E_now = failure_functional(self.model, self._hist_points()[near])
+        self.model.train()
+        return float((E_true[near] - E_now).mean().item())
+
     def _propose_levelset(self) -> torch.Tensor:
         """
         Điểm trên tập mức không dự đoán, chọn theo:
@@ -256,6 +273,7 @@ class FMDPINNTrainer:
         cfg.KNEE_PREFER quyết định (xem ghi chú bên dưới).
         """
         E, gnorm = self._scan()
+        E = E + self._level_offset()
         band = BAND
         mask = E.abs() < band
         while mask.sum() < 10 and band < 1.0:
@@ -290,8 +308,26 @@ class FMDPINNTrainer:
             score = score + KNEE_WEIGHT * w
 
         p = cand[score.argmax()]
-        # nhiễu nhỏ để không lặp lại đúng nút lưới
-        return clamp_normalised(p + torch.randn(3, device=self.device) * 0.01)
+        # nhiễu nhỏ để không lặp lại đúng nút lưới, rồi kéo về đúng tập mức không
+        p = clamp_normalised(p + torch.randn(3, device=self.device) * 0.01)
+        return self._project_to_levelset(p)
+
+    def _project_to_levelset(self, p: torch.Tensor) -> torch.Tensor:
+        """Newton trên E_pinn: p <- p - E * gradE / |gradE|^2.
+        score đã chọn VỊ TRÍ DỌC theo biên; bước này sửa KHOẢNG CÁCH tới biên."""
+        n_iter = getattr(cfg, "PROJECT_ITERS", 3)
+        if n_iter <= 0:
+            return p
+        cap = getattr(cfg, "PROJECT_MAX_STEP", 0.05)
+        self.model.eval()
+        for _ in range(n_iter):
+            q = p.detach().clone().unsqueeze(0).requires_grad_(True)
+            E = failure_functional(self.model, q)
+            g = torch.autograd.grad(E.sum(), q)[0][0]
+            step = (E.detach()[0] * g / (g.pow(2).sum() + 1e-8)).clamp(-cap, cap)
+            p = clamp_normalised(p - step)
+        self.model.train()
+        return p.detach()
 
     # ── Đề xuất: bisection trên oracle ───────────────────────────────────────
 
