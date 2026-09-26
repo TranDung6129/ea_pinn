@@ -1,45 +1,72 @@
 {
-  "benchmark": "Benchmark 1: 2D Reaction-Diffusion",
-  "methods": {
-    "BO+FEM": {
-      "hausdorff_final": 1.2533969542899097,
-      "n_delta": 200.0,
-      "fsr": 0.0,
-      "coverage_ratio": 0.9524999999999999,
-      "wall_clock": {
-        "t_total_h": 0.008100010355313618
-      }
-    },
-    "FMD-PINN (full)": {
-      "hausdorff_final": 0.18156039522607118,
-      "n_delta": null,
-      "fsr": 0.10150141191504929,
-      "coverage_ratio": 0.9885311871227364,
-      "wall_clock": {
-        "t_total_h": 0
-      }
-    },
-    "Vanilla PINN": {
-      "hausdorff_final": null,
-      "n_delta": null,
-      "fsr": 0.0,
-      "coverage_ratio": 0.0,
-      "wall_clock": {
-        "t_total_h": 0
-      }
-    }
+  "B1 th\u1ee5 \u0111\u1ed9ng": {
+    "hausdorff": 0.0640554172157611,
+    "n_delta": 112.0,
+    "fsr_band": 0.13793644566496666,
+    "far_band": 0.039128281327389804,
+    "cr": 0.9615284411636995,
+    "std_seed": 0.025100230432066495,
+    "std_ckpt": 0.029484313268278033,
+    "n_seeds": 5
   },
-  "main_claim": {
-    "fmd_n_delta": null,
-    "bo_n_delta": 200.0,
-    "speedup": null,
-    "fmd_fsr": 0.10150141191504929,
-    "claim_verified": false
+  "B2 t\u1eadp m\u1ee9c kh\u00f4ng": {
+    "hausdorff": 0.053160044382372616,
+    "n_delta": 50.0,
+    "fsr_band": 0.018046292663789723,
+    "far_band": 0.11778107974244675,
+    "cr": 0.9950065132435955,
+    "std_seed": 0.008925084708687735,
+    "std_ckpt": 0.02252938777934794,
+    "n_seeds": 5
   },
-  "figures": [
-    "phase_diagram_slices.png",
-    "oracle_efficiency.png",
-    "fsr_curves.png",
-    "field_*.png"
-  ]
+  "B3 + bisection": {
+    "hausdorff": 0.059308929697818646,
+    "n_delta": 58.0,
+    "fsr_band": 0.08426834052569634,
+    "far_band": 0.08311045071817733,
+    "cr": 0.9764220581849761,
+    "std_seed": 0.019966903633868553,
+    "std_ckpt": 0.020971476999502383,
+    "n_seeds": 5
+  },
+  "B4 + knee": {
+    "hausdorff": 0.05480154654847278,
+    "n_delta": 36.0,
+    "fsr_band": 0.037112593173793645,
+    "far_band": 0.09450222882615157,
+    "cr": 0.9896873643074251,
+    "std_seed": 0.014514103418331054,
+    "std_ckpt": 0.01607807336336094,
+    "n_seeds": 5
+  },
+  "BO (max E)": {
+    "hausdorff": 1.0340706503889499,
+    "n_delta": 10.0,
+    "fsr_band": 0.0,
+    "far_band": 1.0,
+    "cr": 1.0,
+    "std_seed": 0.25665417497690934,
+    "std_ckpt": NaN,
+    "n_seeds": 5
+  },
+  "BO (t\u00ecm bi\u00ean)": {
+    "hausdorff": 0.034075100770094124,
+    "n_delta": 20.0,
+    "fsr_band": 0.007610827775598274,
+    "far_band": 0.018722139673105497,
+    "cr": 0.9976986539296571,
+    "std_seed": 0.0007980550528369537,
+    "std_ckpt": NaN,
+    "n_seeds": 5
+  },
+  "FEM grid 25\u00b3": {
+    "hausdorff": 0.0,
+    "n_delta": 15625.0,
+    "fsr_band": 0.0,
+    "far_band": 0.0,
+    "cr": 1.0,
+    "std_seed": 0.0,
+    "std_ckpt": NaN,
+    "n_seeds": 1
+  }
 }

@@ -1,210 +1,164 @@
 """
-plot_metrics_v2.py
-------------------
-Publication-quality metric figures from per-seed metrics JSONs.
-Standalone — does NOT retrain anything, only reads results/*.json.
+plot_metric.py — hình từ results/*_metrics.json. Không huấn luyện lại gì.
 
-Key differences vs old plots:
-  • δ_H curve: prefers PINN-based curve (predicted-boundary accuracy, i.e. BPE)
-    over the legacy oracle-distribution curve. Falls back gracefully.
-  • All curves: mean ± std band across ALL seeds, not just seed 0.
-  • Minimal text overlay; stats printed to console instead.
+  python plot_metric.py
+  python plot_metric.py --tag cap        # các lần chạy có --tag cap
 
-Usage (Windows or Ubuntu):
-    python plot_metrics_v2.py
-Outputs:
-    results/oracle_efficiency_v2.png
-    results/fsr_curves_v2.png
+δ_H vẽ tại đúng các mốc lời gọi có checkpoint (hausdorff_calls), theo chỉ số
+cfg.DH_METRIC (mặc định p95). BO+FEM đọc từ bo_fem_summary.json, đã được đo
+bằng cùng cách.
 """
-
-import sys, os, json, glob
+import sys, os, json, glob, argparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")          # avoids Windows font/backend crashes
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 import config as cfg
 
-# ── Config ────────────────────────────────────────────────────────────────────
-
 DISPLAY = {
-    "A2_event_only":    "FMD (event only)",
-    "A3_adaptive_only": "FMD (adaptive only)",
-    "A4_no_minmax":     "FMD (no min-max)",
-    "A5_full_fmd":      "FMD-PINN (full)",
+    "B1_passive":  ("Thụ động (LHS)",   "tab:gray",   "-."),
+    "B2_levelset": ("Tập mức không",    "tab:blue",   "--"),
+    "B3_bisect":   ("+ bisection",      "tab:green",  "-"),
+    "B4_full":     ("+ ưu tiên knee",   "tab:orange", "-"),
 }
-STYLE = {
-    "FMD (event only)":    dict(color="tab:blue",   ls="-"),
-    "FMD (adaptive only)": dict(color="tab:red",    ls="--"),
-    "FMD (no min-max)":    dict(color="tab:green",  ls="-."),
-    "FMD-PINN (full)":     dict(color="tab:orange", ls="-",  lw=2.2),
-    "BO+FEM":              dict(color="tab:purple", ls=":"),
-}
-# Keys to try for the PINN-based (BPE) Hausdorff curve, in priority order.
-PINN_CURVE_KEYS = ["hausdorff_curve_pinn"]   # exact key confirmed in JSON
-LEGACY_CURVE_KEY = "hausdorff_curve"
-PINN_VARIANTS = {"A5_full_fmd"}
-DELTA_TARGET = 0.1
 DPI = 300
+TAG = ""
 
 
-# ── Loading ───────────────────────────────────────────────────────────────────
-
-def load_seed_metrics(variant: str) -> list:
-    files = sorted(glob.glob(
-        os.path.join(cfg.RESULTS_DIR, f"{variant}_seed*_metrics.json")))
-    out = []
-    for f in files:
-        with open(f) as fh:
-            out.append(json.load(fh))
-    return out
+def load(variant):
+    pat = f"{variant}_{TAG}_seed*_metrics.json" if TAG else f"{variant}_seed*_metrics.json"
+    return [json.load(open(f))
+            for f in sorted(glob.glob(os.path.join(cfg.RESULTS_DIR, pat)))]
 
 
-def pick_hausdorff_curve(m: dict, variant: str = "") -> tuple:
-    """Return (curve, is_pinn_based). Prefers PINN-based key."""
-    for k in PINN_CURVE_KEYS:
-        if m.get(k):
-            return np.asarray(m[k], dtype=float), True
-    if m.get(LEGACY_CURVE_KEY):
-        is_pinn = variant in PINN_VARIANTS
-        return np.asarray(m[LEGACY_CURVE_KEY], dtype=float), is_pinn
-    return None, False
-
-
-def stack_curves(curves: list) -> tuple:
-    """Pad/truncate to common length, return (mean, std, n_len). inf → nan."""
-    curves = [c for c in curves if c is not None and len(c) > 0]
+def _band(curves):
+    curves = [np.asarray(c, float) for c in curves if c is not None and len(c)]
     if not curves:
         return None, None, 0
     L = min(len(c) for c in curves)
-    arr = np.stack([np.asarray(c[:L], dtype=float) for c in curves])
-    arr[~np.isfinite(arr)] = np.nan
-    with np.errstate(all="ignore"):
-        mean = np.nanmean(arr, axis=0)
-        std  = np.nanstd(arr,  axis=0)
-    return mean, std, L
+    A = np.stack([c[:L] for c in curves])
+    A[~np.isfinite(A)] = np.nan
+    return np.nanmean(A, 0), np.nanstd(A, 0), L
 
 
-def curve_x(n_pts: int, budget: int) -> np.ndarray:
-    """Map curve indices to oracle-call axis.
-    PINN-based curves are checkpointed every budget/n_pts calls;
-    legacy curves are per-call."""
-    if n_pts >= budget:                      # per-call legacy curve
-        return np.arange(1, n_pts + 1)
-    step = budget / n_pts                    # checkpointed curve
-    return np.arange(1, n_pts + 1) * step
+def plot_hausdorff():
+    fig, ax = plt.subplots(figsize=(7.2, 4.8))
+    target = floor = metric = None
 
-
-# ── Figure 1: Oracle efficiency (δ_H vs calls) ───────────────────────────────
-
-def plot_oracle_efficiency_v2(budget: int):
-    fig, ax = plt.subplots(figsize=(7.0, 4.6))
-    any_pinn_based = False
-
-    for variant, label in DISPLAY.items():
-        seeds = load_seed_metrics(variant)
+    for var, (label, color, ls) in DISPLAY.items():
+        seeds = load(var)
         if not seeds:
             continue
-        curves, pinn_flags = [], []
-        for m in seeds:
-            c, is_pinn = pick_hausdorff_curve(m, variant)
-            if c is not None:
-                curves.append(c)
-                pinn_flags.append(is_pinn)
-        if not curves:
+        mean, std, L = _band([m.get("hausdorff_curve") for m in seeds])
+        if mean is None:
             continue
-        any_pinn_based |= any(pinn_flags)
-        mean, std, L = stack_curves(curves)
-        x = curve_x(L, budget)
-        st = STYLE[label]
-        ax.plot(x, mean, label=label, **st)
-        ax.fill_between(x, mean - std, mean + std,
-                        color=st["color"], alpha=0.15, lw=0)
-        print(f"  {label:<24} n_seeds={len(curves)}  "
-              f"final δ_H = {mean[-1]:.4f} ± {std[-1]:.4f}  "
-              f"({'PINN-based' if any(pinn_flags) else 'legacy'})")
+        x = np.asarray(seeds[0].get("hausdorff_calls", range(1, L + 1)))[:L]
+        ax.plot(x, mean, color=color, ls=ls, lw=2, label=label)
+        ax.fill_between(x, mean - std, mean + std, color=color, alpha=0.15, lw=0)
+        target = seeds[0].get("delta_target", target)
+        floor = seeds[0].get("delta_floor", floor)
+        metric = seeds[0].get("dh_metric", metric)
+        nd = [m["n_delta"] for m in seeds if m.get("n_delta", -1) > 0]
+        print(f"  {label:<20} n={len(seeds)}  cuối={mean[-1]:.4f}±{std[-1]:.4f}"
+              + (f"   N_δ={np.mean(nd):.0f}" if nd else "   N_δ: chưa đạt"))
 
-    # BO+FEM: flat reference from summary if present
-    bo_path = os.path.join(cfg.RESULTS_DIR, "bo_fem_summary.json")
-    if os.path.exists(bo_path):
-        with open(bo_path) as f:
-            bo = json.load(f)
-        bo_dh = bo.get("hausdorff_mean") or bo.get("hausdorff_final")
-        if bo_dh:
-            ax.axhline(bo_dh, **STYLE["BO+FEM"], label="BO+FEM (final)")
-            print(f"  {'BO+FEM':<24} final δ_H = {bo_dh:.4f}")
+    for fname, lab, col in [("bo_fem_summary.json", "BO (max E)", "tab:purple"),
+                            ("bo_boundary_summary.json", "BO (tìm biên)", "tab:brown")]:
+        bo_path = os.path.join(cfg.RESULTS_DIR, fname)
+        if not os.path.exists(bo_path):
+            continue
+        bo = json.load(open(bo_path))
+        curves = [m.get("hausdorff_curve")
+                  for m in bo.get("metrics_per_seed", []) if m.get("hausdorff_curve")]
+        mean, std, L = _band(curves)
+        if mean is not None and np.isfinite(mean).any():
+            x = np.asarray(bo["metrics_per_seed"][0]["hausdorff_calls"])[:L]
+            ax.plot(x, mean, color=col, ls=":", lw=2, label=lab)
+            ax.fill_between(x, mean - std, mean + std, color=col, alpha=0.12, lw=0)
+            nd = [m["n_delta"] for m in bo["metrics_per_seed"]
+                  if m.get("n_delta", -1) > 0]
+            print(f"  {lab:<20} n={len(curves)}  cuối={mean[-1]:.4f}±{std[-1]:.4f}"
+                  + (f"   N_δ={np.mean(nd):.0f}" if nd else "   N_δ: chưa đạt"))
+        else:
+            print(f"  {lab:<20} không có biên hữu hạn để vẽ "
+                  f"(tập mức không rỗng)")
 
-    ax.axhline(DELTA_TARGET, color="k", ls=":", lw=1,
-               label=f"δ_target = {DELTA_TARGET}")
+    if target:
+        ax.axhline(target, color="k", ls=":", lw=1, label=f"δ_target = {target:.3f}")
+    if floor:
+        ax.axhspan(0, floor, color="red", alpha=0.07, lw=0)
+        ax.text(0.01, floor, " sàn rời rạc hoá", color="red", fontsize=7,
+                va="bottom", transform=ax.get_yaxis_transform())
+
     ax.set_yscale("log")
-    ax.set_xlabel("Oracle Calls (FEM simulations)")
-    ylabel = ("Boundary Prediction Error δ_H (PINN-based)"
-              if any_pinn_based else "Hausdorff Distance δ_H")
-    ax.set_ylabel(ylabel)
-    ax.legend(fontsize=8, framealpha=0.9)
+    ax.set_xlabel("Số lời gọi oracle (mô phỏng FEM)")
+    ax.set_ylabel(f"Sai số biên δ_H [{metric or cfg.DH_METRIC}]")
+    ax.legend(fontsize=8)
     ax.grid(alpha=0.25)
     fig.tight_layout()
-    out = os.path.join(cfg.RESULTS_DIR, "oracle_efficiency_v2.png")
+    out = os.path.join(cfg.RESULTS_DIR,
+                       f"hausdorff{'_' + TAG if TAG else ''}.png")
     fig.savefig(out, dpi=DPI, facecolor="white")
     plt.close(fig)
-    print(f"✓ Saved {out}")
-    if not any_pinn_based:
-        print("⚠ No PINN-based curve key found in metrics JSONs — plotted "
-              "legacy oracle-distribution curve. Check JSON keys (see below).")
+    print(f"✓ {out}")
 
 
-# ── Figure 2: FSR mean±std across seeds ───────────────────────────────────────
-
-def plot_fsr_v2(budget: int):
-    fig, ax = plt.subplots(figsize=(7.0, 4.2))
-    for variant, label in DISPLAY.items():
-        seeds = load_seed_metrics(variant)
-        curves = [np.asarray(m["fsr_curve"], dtype=float) * 100
-                  for m in seeds if m.get("fsr_curve")]
-        if not curves:
+def plot_safety():
+    """FSR dải biên so với báo động giả — hai phía của cùng một đánh đổi."""
+    fig, ax = plt.subplots(figsize=(6.4, 5.2))
+    for var, (label, color, _) in DISPLAY.items():
+        seeds = load(var)
+        if not seeds:
             continue
-        mean, std, L = stack_curves(curves)
-        x = np.arange(1, L + 1)
-        st = STYLE[label]
-        ax.plot(x, mean, label=label, **st)
-        ax.fill_between(x, np.clip(mean - std, 0, None), mean + std,
-                        color=st["color"], alpha=0.15, lw=0)
-        print(f"  {label:<24} n_seeds={len(curves)}  "
-              f"final FSR = {mean[-1]:.1f}% ± {std[-1]:.1f}%")
+        x = [m["far_band"] * 100 for m in seeds if np.isfinite(m.get("far_band", np.nan))]
+        y = [m["fsr_band"] * 100 for m in seeds if np.isfinite(m.get("fsr_band", np.nan))]
+        if not x:
+            continue
+        ax.scatter(x, y, color=color, s=60, label=label, zorder=3)
+        print(f"  {label:<20} FSR_biên={np.mean(y):.1f}%  "
+              f"báo động giả={np.mean(x):.1f}%")
 
-    ax.axhline(5.0, color="red", ls=":", lw=1, label="Alert threshold 5%")
-    ax.set_xlabel("Oracle Calls")
-    ax.set_ylabel("False Safe Rate (%)")
-    ax.set_ylim(0, None)
-    ax.legend(fontsize=8, framealpha=0.9)
+    for fname, lab, col, mk in [
+            ("bo_fem_summary.json", "BO (max E)", "tab:purple", "^"),
+            ("bo_boundary_summary.json", "BO (tìm biên)", "tab:brown", "v")]:
+        bo_path = os.path.join(cfg.RESULTS_DIR, fname)
+        if not os.path.exists(bo_path):
+            continue
+        ms = json.load(open(bo_path)).get("metrics_per_seed", [])
+        x = [m["far_band"] * 100 for m in ms if np.isfinite(m.get("far_band", np.nan))]
+        y = [m["fsr_band"] * 100 for m in ms if np.isfinite(m.get("fsr_band", np.nan))]
+        if x:
+            ax.scatter(x, y, color=col, marker=mk, s=60, label=lab, zorder=3)
+            print(f"  {lab:<20} FSR_biên={np.mean(y):.1f}%  "
+                  f"báo động giả={np.mean(x):.1f}%")
+
+    ax.axhline(5, color="red", ls=":", lw=1)
+    ax.axvline(5, color="red", ls=":", lw=1)
+    ax.set_xlabel("Báo động giả trong dải biên (%)  — an toàn bị gọi là sập")
+    ax.set_ylabel("FSR trong dải biên (%)  — sập bị gọi là an toàn")
+    ax.set_title("Góc dưới trái là tốt. Nằm trên một trục nghĩa là\n"
+                 "mô hình đang đổi sai lầm này lấy sai lầm kia.", fontsize=9)
+    ax.legend(fontsize=8)
     ax.grid(alpha=0.25)
     fig.tight_layout()
-    out = os.path.join(cfg.RESULTS_DIR, "fsr_curves_v2.png")
+    out = os.path.join(cfg.RESULTS_DIR, f"safety{'_' + TAG if TAG else ''}.png")
     fig.savefig(out, dpi=DPI, facecolor="white")
     plt.close(fig)
-    print(f"✓ Saved {out}")
+    print(f"✓ {out}")
 
-
-# ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
-    budget = cfg.ORACLE_BUDGET
-    print(f"[plot_metrics_v2] results dir = {cfg.RESULTS_DIR}")
-
-    # Diagnostic: show available keys of one A5 metrics file
-    sample = glob.glob(os.path.join(cfg.RESULTS_DIR,
-                                    "A5_full_fmd_seed0_metrics.json"))
-    if sample:
-        with open(sample[0]) as f:
-            keys = list(json.load(f).keys())
-        print(f"[diag] A5 seed0 metric keys: {keys}\n")
-
-    print("── Figure 1: Oracle efficiency ──")
-    plot_oracle_efficiency_v2(budget)
-    print("\n── Figure 2: FSR curves ──")
-    plot_fsr_v2(budget)
+    global TAG
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--tag", default="")
+    TAG = ap.parse_args().tag
+    print(f"[plot] {cfg.RESULTS_DIR}" + (f"  tag={TAG}" if TAG else ""))
+    print("\n── Sai số biên ──")
+    plot_hausdorff()
+    print("\n── An toàn ──")
+    plot_safety()
 
 
 if __name__ == "__main__":
