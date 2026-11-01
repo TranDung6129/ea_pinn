@@ -56,6 +56,10 @@ Sau đó vào trang của project, xem phần memory để kiểm. Một số d�
 
 Lưu ý thiết lập bộ nhớ của project: mỗi project có một lựa chọn giữ bộ nhớ riêng hay dùng chung với bộ nhớ tài khoản, nằm trên trang của project. Nếu muốn FMD-PINN tách hẳn khỏi các việc khác (VinUni, môn học), chọn riêng.
 
+## Dùng với Claude Code trong VS Code
+
+File `CLAUDE.md` ở gốc repo được Claude Code tự đọc khi bạn mở thư mục `ea_pinn`. Nó nạp `PROJECT_INSTRUCTIONS.md` và `MEMORY_PROJECT.md`, nên Claude Code có đủ bộ nhớ ngay từ câu đầu mà không cần project trên claude.ai. Phần riêng tư: chép nội dung `MEMORY_RIENG_TU.md` vào file `CLAUDE.local.md` ở gốc repo. File này cũng được tự đọc, và đã nằm trong `.gitignore` nên không bị đẩy lên GitHub.
+
 ## Bước 5: kiểm tra project mới
 
 Mở hội thoại mới trong project và hỏi ba câu. Nếu Claude trả lời đúng mà không cần bạn giải thích lại, việc chuyển đã xong.

@@ -46,3 +46,6 @@ venv.bak/
 .vscode/
 *.swp
 .DS_Store
+
+# Claude Code: ghi chú cá nhân, không commit
+CLAUDE.local.md
